@@ -33,6 +33,7 @@ let messages = [];
 let currentMessage = null;
 let labels = [];
 let labelCounts = {};
+let appVersion = null;        // filled from the manifest by checkForUpdates()
 let profile = null;
 let busy = false;
 
@@ -1536,6 +1537,104 @@ async function downloadAttachment(m, att, card) {
   card.classList.remove('is-busy');
 }
 
+/* ---------------- check for updates ---------------- */
+
+/* A .aip app cannot replace its own files, so "check for updates" compares the
+   repo's app.json (and the latest release tag) with this app's manifest and
+   points the user at the GitHub release — same flow as Term Coder. */
+const UPDATE_REPO = 'pagecow/cmail';
+const UPDATE_APP_JSON_URL = 'https://raw.githubusercontent.com/' + UPDATE_REPO + '/main/app.json';
+const UPDATE_RELEASE_API_URL = 'https://api.github.com/repos/' + UPDATE_REPO + '/releases/latest';
+const UPDATE_RELEASES_PAGE = 'https://github.com/' + UPDATE_REPO + '/releases';
+const APP_VERSION = '0.4.2';   // fallback only — the manifest is the source of truth
+
+/* "1.2.3" / "v1.2.3" → [1, 2, 3]; null when there is no leading number. */
+function parseVersion(v) {
+  const m = String(v == null ? '' : v).trim().replace(/^v/i, '').match(/^(\d+)(?:\.(\d+))?(?:\.(\d+))?/);
+  if (!m) return null;
+  return [parseInt(m[1], 10) || 0, parseInt(m[2], 10) || 0, parseInt(m[3], 10) || 0];
+}
+
+/* >0 when a is newer than b, <0 when b is newer, 0 when equal or unparseable. */
+function compareVersions(a, b) {
+  const pa = parseVersion(a);
+  const pb = parseVersion(b);
+  if (!pa || !pb) return 0;
+  for (let i = 0; i < 3; i++) {
+    if (pa[i] !== pb[i]) return pa[i] > pb[i] ? 1 : -1;
+  }
+  return 0;
+}
+
+/* This app's own version, from its manifest. */
+async function ownVersion() {
+  try {
+    const m = await window.chatoss.manifest.get();
+    if (m && m.version) return String(m.version);
+  } catch (e) { /* fall through to the constant */ }
+  return APP_VERSION;
+}
+
+/* The latest published version, or null when nothing could be read.
+   Primary: the repo's app.json on main (the ?t= cache-buster forces a CDN
+   cache miss). Fallback: the latest release tag. */
+async function fetchLatestVersion() {
+  const getJson = async (url, headers) => {
+    const res = await window.chatoss.http.request(headers ? { url, headers } : { url });
+    if (!res || res.status !== 200 || !res.body) return null;
+    try { return JSON.parse(res.body); } catch (e) { return null; }
+  };
+  try {
+    const json = await getJson(UPDATE_APP_JSON_URL + '?t=' + Date.now());
+    if (json && json.version) return String(json.version);
+  } catch (e) { /* try the next source */ }
+  try {
+    // The raw host doesn't care, but GitHub's API answers 403 ("forbidden by
+    // administrative rules") to any request without a User-Agent.
+    const json = await getJson(UPDATE_RELEASE_API_URL, {
+      'User-Agent': 'Cmail/' + APP_VERSION,
+      Accept: 'application/vnd.github+json',
+    });
+    if (json && (json.tag_name || json.name)) return String(json.tag_name || json.name);
+  } catch (e) { /* nothing left to try */ }
+  return null;
+}
+
+async function checkForUpdates() {
+  const btn = $('btn-updates');
+  if (!btn || btn.disabled) return;
+  const label = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Checking…';
+  try {
+    appVersion = await ownVersion();
+    const remote = await fetchLatestVersion();
+    if (!remote) {
+      showToast('Couldn’t check for updates — check your connection', true);
+    } else if (compareVersions(remote, appVersion) > 0) {
+      $('update-version').textContent = 'Cmail ' + remote + ' is available — you have ' + appVersion + '.';
+      $('update-modal').hidden = false;
+    } else {
+      showToast('Cmail is up to date (' + appVersion + ')');
+    }
+  } catch (e) {
+    showToast('Couldn’t check for updates: ' + e.message, true);
+  }
+  btn.disabled = false;
+  btn.textContent = label;
+}
+
+function openReleasesPage() {
+  $('update-modal').hidden = true;
+  try {
+    window.chatoss.openExternal.open(UPDATE_RELEASES_PAGE).catch(() => {
+      showToast('Couldn’t open the release page', true);
+    });
+  } catch (e) {
+    showToast('Couldn’t open the release page: ' + e.message, true);
+  }
+}
+
 /* ---------------- compose ---------------- */
 
 function composeOpen() {
@@ -1732,6 +1831,7 @@ function handleKeydown(e) {
     if (composeOpen()) { closeCompose(false); return; }
     if (!$('newlabel-modal').hidden) { $('newlabel-modal').hidden = true; return; }
     if (!$('labels-modal').hidden) { $('labels-modal').hidden = true; return; }
+    if (!$('update-modal').hidden) { $('update-modal').hidden = true; return; }
     if (!$('settings-modal').hidden) { $('settings-modal').hidden = true; return; }
     if (threadOpen()) { showList(); return; }
     return;
@@ -1821,6 +1921,11 @@ function wire() {
     showSkeleton();
     reloadList();
   };
+
+  $('btn-updates').onclick = checkForUpdates;
+  $('update-close').onclick = () => { $('update-modal').hidden = true; };
+  $('update-later').onclick = () => { $('update-modal').hidden = true; };
+  $('update-open').onclick = openReleasesPage;
 
   $('btn-back').onclick = showList;
   $('btn-newer').onclick = goNewerPage;

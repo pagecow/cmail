@@ -11,6 +11,7 @@ A Gmail client for **[ChatOSS](https://chatoss.ai)** — read, send, star, archi
 - **Compose, reply, forward.** Replies open **empty** (the point is to write your own message) with proper `In-Reply-To` / `References` / `threadId` headers so they thread correctly; forwards carry the original text. Sending with no text asks first.
 - **Labels.** Create labels with Gmail's colour palette, and apply or remove them on a conversation.
 - **Attachments.** Click an attachment card to save the file into your ChatOSS Drive (`Attachments/…`).
+- **Check for updates.** The button in the top-right corner compares this build with the repo's latest release and opens the release page when a newer version is out.
 - **Keyboard shortcuts.** Gmail-style: `c` compose, `r` reply, `f` forward, `l` labels, `/` search, `j`/`k` move, `e` archive, `#` trash, `u` back, `Esc` close.
 
 ## Install
@@ -23,7 +24,7 @@ A Gmail client for **[ChatOSS](https://chatoss.ai)** — read, send, star, archi
 
 | Capability | Why it is needed |
 | --- | --- |
-| `hostHttp` | talk to `gmail.googleapis.com` and `oauth2.googleapis.com` (the only hosts allowed) |
+| `hostHttp` | talk to `gmail.googleapis.com` / `oauth2.googleapis.com` (and `raw.githubusercontent.com` / `api.github.com` for the update check) |
 | `secrets` | keep your OAuth client secret and refresh token in the OS keychain |
 | `openExternal` | open Google's consent page in your browser during setup |
 | `clipboardRead` / `clipboardWrite` | paste the redirect URL back in during setup, copy addresses out |

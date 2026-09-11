@@ -262,6 +262,36 @@
   flex: none;
 }
 
+/* "Check for updates" — top-right corner, next to the refresh button. */
+.cm-update-btn {
+  flex: none;
+  padding: 7px 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--cm-pill);
+  background: transparent;
+  color: var(--text-2);
+  font: inherit;
+  font-size: 12.5px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.cm-update-btn:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.cm-update-btn:disabled {
+  opacity: .6;
+  cursor: default;
+}
+
+.cm-update-text {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: var(--text);
+}
+
 .cm-search {
   flex: 1;
   min-width: 0;
@@ -1080,7 +1110,8 @@
 }
 
 #labels-modal .modal,
-#newlabel-modal .modal {
+#newlabel-modal .modal,
+#update-modal .modal {
   width: 420px;
   max-width: 92vw;
 }
@@ -1246,6 +1277,7 @@
 #auth-step2[hidden],
 #labels-modal[hidden],
 #newlabel-modal[hidden],
+#update-modal[hidden],
 #cm-toast[hidden] {
   display: none !important;
 }
