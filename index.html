@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cmail</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app-shell app-shell--two cm-shell">
+  <aside class="app-sidebar cm-sidebar">
+    <button id="btn-connect" class="cm-account-chip" type="button" title="Gmail account settings">
+      <span id="account-avatar" class="cm-avatar cm-avatar-sm">?</span>
+      <span class="cm-account-meta">
+        <span id="account-email" class="cm-account-email truncate">Not connected</span>
+        <span id="account-status" class="cm-account-sub">Connect Gmail…</span>
+      </span>
+      <span class="cm-account-gear" data-icon="settings" aria-hidden="true"></span>
+    </button>
+
+    <button id="btn-compose" class="cm-compose-btn" type="button">
+      <span class="cm-compose-ic" data-icon="compose" aria-hidden="true"></span>
+      <span>Compose</span>
+    </button>
+
+    <nav id="folder-list" class="cm-nav"></nav>
+  </aside>
+
+  <main class="app-main cm-main">
+    <header class="cm-topbar">
+      <div class="cm-search">
+        <span class="cm-search-ic" data-icon="search" aria-hidden="true"></span>
+        <input id="search-input" class="cm-search-input" type="text" placeholder="Search mail"
+               autocomplete="off" spellcheck="false" aria-label="Search mail">
+        <button id="btn-clear-search" class="cm-search-clear" type="button" title="Clear search" hidden>×</button>
+      </div>
+      <button id="btn-refresh" class="cm-icon-btn" type="button" title="Refresh" data-icon="refresh"></button>
+    </header>
+
+    <!-- Conversation list — full width -->
+    <section id="list-view" class="cm-view">
+      <div class="cm-list-toolbar">
+        <span id="list-title" class="cm-list-title">Inbox</span>
+        <span id="list-count" class="cm-list-count"></span>
+        <span class="spacer"></span>
+        <span id="page-range" class="cm-range"></span>
+        <button id="btn-newer" class="cm-icon-btn cm-icon-btn-sm" type="button" title="Newer" data-icon="chevronLeft"></button>
+        <button id="btn-older" class="cm-icon-btn cm-icon-btn-sm" type="button" title="Older" data-icon="chevronRight"></button>
+      </div>
+      <div id="msg-list" class="cm-list"></div>
+      <div class="list-footer">
+        <div id="list-status" class="statusline"></div>
+      </div>
+    </section>
+
+    <!-- Conversation — full width, replaces the list -->
+    <section id="thread-view" class="cm-view" hidden>
+      <div class="cm-th-toolbar">
+        <button id="btn-back" class="cm-icon-btn" type="button" title="Back to list" data-icon="back"></button>
+        <span class="cm-th-toolbar-sep"></span>
+        <button id="btn-archive" class="cm-icon-btn" type="button" title="Archive" data-icon="archive"></button>
+        <button id="btn-trash" class="cm-icon-btn" type="button" title="Delete" data-icon="trash"></button>
+        <button id="btn-untrash" class="cm-icon-btn" type="button" title="Restore to inbox" data-icon="restore" hidden></button>
+        <button id="btn-read" class="cm-icon-btn" type="button" title="Mark as read" data-icon="mailOpen"></button>
+        <button id="btn-label" class="cm-icon-btn" type="button" title="Labels" data-icon="label"></button>
+      </div>
+
+      <div id="msg-empty" class="cm-empty-pane">
+        <div class="cm-empty-art" data-icon="mail" aria-hidden="true"></div>
+        <div id="msg-empty-title" class="empty-title">No conversation selected</div>
+        <div id="msg-empty-text" class="empty-text"></div>
+      </div>
+
+      <div id="msg-view" hidden>
+        <div class="cm-th-scroll">
+          <div class="cm-th-subject-row">
+            <h1 id="thread-subject" class="cm-th-subject"></h1>
+            <span id="msg-chips" class="cm-chips" hidden></span>
+          </div>
+          <div id="thread-messages"></div>
+        </div>
+        <div class="cm-reply-row">
+          <button id="btn-reply" class="cm-pill" type="button">
+            <span class="cm-pill-ic" data-icon="reply" aria-hidden="true"></span>Reply
+          </button>
+          <button id="btn-forward" class="cm-pill" type="button">
+            <span class="cm-pill-ic" data-icon="forward" aria-hidden="true"></span>Forward
+          </button>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Compose — Gmail's floating window -->
+<div id="compose-panel" class="cm-compose" hidden>
+  <div class="cm-compose-head">
+    <span id="compose-title" class="cm-compose-title">New message</span>
+    <div class="cm-compose-head-actions">
+      <button id="compose-min" class="cm-icon-btn cm-icon-btn-sm" type="button" title="Minimize" data-icon="chevron"></button>
+      <button id="compose-close" class="cm-icon-btn cm-icon-btn-sm" type="button" title="Discard draft" data-icon="close"></button>
+    </div>
+  </div>
+  <div class="cm-compose-body">
+    <div class="cm-compose-field">
+      <input id="compose-to" class="cm-compose-input" placeholder="Recipients" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="cm-compose-field">
+      <input id="compose-subject" class="cm-compose-input" placeholder="Subject" autocomplete="off">
+    </div>
+    <textarea id="compose-body" class="cm-compose-textarea" placeholder="Write a message…" spellcheck="false"></textarea>
+    <div id="compose-confirm" class="cm-compose-confirm" hidden>
+      Discard this draft?
+      <span class="spacer"></span>
+      <button id="compose-discard-yes" class="btn btn-sm btn-danger" type="button">Discard</button>
+      <button id="compose-discard-no" class="btn btn-sm" type="button">Keep writing</button>
+    </div>
+    <div id="compose-send-confirm" class="cm-compose-confirm" hidden>
+      Send this message without any text?
+      <span class="spacer"></span>
+      <button id="compose-send-anyway" class="btn btn-sm btn-primary" type="button">Send</button>
+      <button id="compose-send-cancel" class="btn btn-sm" type="button">Keep writing</button>
+    </div>
+  </div>
+  <div class="cm-compose-foot">
+    <button id="compose-send" class="cm-send-btn" type="button">Send</button>
+    <button id="compose-discard" class="cm-icon-btn" type="button" title="Discard draft" data-icon="trash"></button>
+    <span id="compose-status" class="statusline"></span>
+  </div>
+</div>
+
+<!-- Settings / auth -->
+<div id="settings-modal" class="overlay" hidden>
+  <div class="modal">
+    <div class="modal-head">Gmail connection <button class="modal-close" id="settings-close">×</button></div>
+    <div class="modal-body">
+      <div id="settings-connected" hidden>
+        <div id="settings-account" class="statusline status-ok"></div>
+        <div class="btn-row"><button id="btn-disconnect" class="btn btn-danger btn-sm">Disconnect</button></div>
+      </div>
+      <div class="field"><label class="label">OAuth Client ID</label><input id="set-client-id" class="input" placeholder="1234567890-abc.apps.googleusercontent.com"></div>
+      <div class="field"><label class="label">OAuth Client Secret</label><input id="set-client-secret" class="input" type="password" placeholder="GOCSPX-…"></div>
+      <div class="field"><label class="label">Redirect URI</label><input id="set-redirect" class="input" value="http://127.0.0.1:5173/"></div>
+      <div class="settings-hint">
+        One-time setup:
+        <ol>
+          <li>Create a project at <span class="mono">console.cloud.google.com</span> and enable the <strong>Gmail API</strong>.</li>
+          <li>Configure the OAuth consent screen (External) and add your own email as a test user.</li>
+          <li>Create credentials → <strong>OAuth client ID</strong> → <strong>Desktop app</strong>.</li>
+          <li>Add the Redirect URI above as an authorized redirect URI, then paste the Client ID and Secret here.</li>
+        </ol>
+        While the Cloud project is in <em>Testing</em> status, Google expires the connection after 7 days — just reconnect. Publishing the app removes that limit.
+      </div>
+      <div id="auth-step2" hidden>
+        <div class="field">
+          <label class="label">1. Sign in with Google in your browser</label>
+          <div class="btn-row">
+            <input id="auth-url" class="input" readonly>
+            <button id="btn-copy-url" class="btn btn-sm">Copy link</button>
+          </div>
+        </div>
+        <div class="field">
+          <label class="label">2. Paste the URL your browser redirected to</label>
+          <textarea id="auth-code-url" class="textarea" rows="3" placeholder="http://127.0.0.1:5173/?code=…"></textarea>
+        </div>
+        <div class="btn-row">
+          <button id="btn-paste" class="btn btn-sm">Paste from clipboard</button>
+          <button id="btn-exchange" class="btn btn-primary btn-sm">Finish sign-in</button>
+        </div>
+      </div>
+      <div id="settings-status" class="statusline"></div>
+    </div>
+    <div class="modal-foot">
+      <button id="btn-save-settings" class="btn">Save settings</button>
+      <button id="btn-start-auth" class="btn btn-primary">Connect Gmail</button>
+    </div>
+  </div>
+</div>
+
+<!-- Labels — create one, and apply labels to the open conversation -->
+<div id="labels-modal" class="overlay" hidden>
+  <div class="modal">
+    <div class="modal-head">Labels <button class="modal-close" id="labels-close">×</button></div>
+    <div class="modal-body">
+      <div id="labels-list" class="cm-label-list"></div>
+      <div id="labels-status" class="statusline"></div>
+    </div>
+    <div class="modal-foot">
+      <button id="labels-new" class="btn" type="button">New label</button>
+      <button id="labels-done" class="btn btn-primary" type="button">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- Create a label -->
+<div id="newlabel-modal" class="overlay" hidden>
+  <div class="modal">
+    <div class="modal-head">New label <button class="modal-close" id="newlabel-close">×</button></div>
+    <div class="modal-body">
+      <div class="field">
+        <label class="label" for="newlabel-name">Name</label>
+        <input id="newlabel-name" class="input" placeholder="Label name" autocomplete="off">
+      </div>
+      <div class="field">
+        <label class="label">Color</label>
+        <div id="newlabel-colors" class="cm-swatches"></div>
+      </div>
+      <div id="newlabel-status" class="statusline"></div>
+    </div>
+    <div class="modal-foot">
+      <button id="newlabel-cancel" class="btn" type="button">Cancel</button>
+      <button id="newlabel-create" class="btn btn-primary" type="button">Create</button>
+    </div>
+  </div>
+</div>
+
+<div id="cm-toast" class="cm-toast" hidden></div>
+
+<script src="main.js"></script>
+</body>
+</html>

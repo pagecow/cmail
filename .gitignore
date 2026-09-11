@@ -1,0 +1,11 @@
+# ChatOSS agent scratch + project memory — not part of the app
+tmp/
+MEMORY.md
+AGENTS.md
+.chatoss/
+
+# Build artifacts (the .aip is attached to releases, not committed)
+*.aip
+
+# macOS
+.DS_Store

@@ -1,0 +1,1273 @@
+/* ============================================================
+   Cmail — Gmail-style layout on top of the platform stylesheet.
+   Colours come from the platform tokens (--surface, --text, …)
+   so the app follows the ChatOSS Light/Dark setting; the only
+   custom variables here are this app's own (--cm-*).
+   ============================================================ */
+
+.cm-shell {
+  --cm-pill: 999px;
+  --cm-shadow-1: 0 1px 2px rgba(0, 0, 0, .10), 0 1px 3px rgba(0, 0, 0, .06);
+  --cm-shadow-2: 0 1px 3px rgba(0, 0, 0, .16), 0 4px 10px rgba(0, 0, 0, .10);
+  --cm-shadow-3: 0 10px 30px rgba(0, 0, 0, .28), 0 2px 8px rgba(0, 0, 0, .16);
+  /* Gmail's blue, per theme (Material 3 palettes) */
+  --cm-blue: #0b57d0;
+  --cm-blue-fg: #ffffff;
+  --cm-blue-soft: #d3e3fd;
+  --cm-blue-soft-fg: #001d35;
+}
+
+[data-theme='dark'] .cm-shell {
+  --cm-blue: #a8c7fa;
+  --cm-blue-fg: #062e6f;
+  --cm-blue-soft: #004a77;
+  --cm-blue-soft-fg: #c2e7ff;
+}
+
+/* ---------------- shell ---------------- */
+
+.app-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 0;
+}
+
+.cm-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 10px 12px;
+  min-width: 0;
+}
+
+.cm-nav {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding-bottom: 8px;
+}
+
+.cm-ic {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  display: block;
+}
+
+/* One full-width view at a time: the list, or the open conversation. */
+.cm-view {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+
+.cm-view[hidden] {
+  display: none;
+}
+
+/* ---------------- account chip ---------------- */
+
+.cm-account-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  background: transparent;
+  border-radius: var(--cm-pill);
+  cursor: pointer;
+  text-align: left;
+  color: var(--text);
+  font: inherit;
+}
+
+.cm-account-chip:hover {
+  background: var(--surface-2);
+}
+
+.cm-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--muted);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.cm-avatar-sm {
+  width: 28px;
+  height: 28px;
+  font-size: 12.5px;
+}
+
+.cm-account-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+
+.cm-account-email {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.cm-account-sub {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.cm-account-sub.is-cta {
+  color: var(--link);
+}
+
+.cm-account-gear {
+  display: flex;
+  color: var(--faint);
+}
+
+.cm-account-gear .cm-ic {
+  width: 16px;
+  height: 16px;
+}
+
+/* ---------------- compose button ---------------- */
+
+.cm-compose-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 4px 2px 10px;
+  padding: 13px 20px 13px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--cm-pill);
+  background: var(--elevated);
+  color: var(--text);
+  box-shadow: var(--cm-shadow-1);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: box-shadow .15s ease, background .15s ease;
+}
+
+.cm-compose-btn:hover {
+  background: var(--surface-2);
+  box-shadow: var(--cm-shadow-2);
+}
+
+.cm-compose-btn:active {
+  box-shadow: var(--cm-shadow-1);
+}
+
+.cm-compose-ic {
+  display: flex;
+}
+
+.cm-compose-ic .cm-ic {
+  width: 19px;
+  height: 19px;
+}
+
+/* ---------------- folder + label nav ---------------- */
+
+.cm-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 14px 8px 16px;
+  border: none;
+  border-radius: var(--cm-pill);
+  background: transparent;
+  color: var(--text-2);
+  font: inherit;
+  font-size: 13.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cm-nav-item.is-labeled {
+  padding-left: 30px;
+}
+
+.cm-nav-item:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.cm-nav-item.is-selected {
+  background: var(--cm-blue-soft);
+  color: var(--cm-blue-soft-fg);
+  font-weight: 600;
+}
+
+.cm-nav-icon {
+  display: flex;
+  color: var(--muted);
+}
+
+.cm-nav-item.is-selected .cm-nav-icon {
+  color: inherit;
+}
+
+.cm-nav-label {
+  flex: 1;
+  min-width: 0;
+}
+
+.cm-nav-count {
+  flex: none;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-2);
+}
+
+.cm-nav-item.is-selected .cm-nav-count {
+  color: inherit;
+}
+
+.cm-nav-sep {
+  margin: 14px 16px 5px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+/* ---------------- top bar + search ---------------- */
+
+.cm-topbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  flex: none;
+}
+
+.cm-search {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 44px;
+  padding: 0 6px 0 14px;
+  border: 1px solid transparent;
+  border-radius: var(--cm-pill);
+  background: var(--surface-2);
+  transition: background .15s ease, border-color .15s ease, box-shadow .15s ease;
+}
+
+.cm-search:focus-within {
+  background: var(--surface);
+  border-color: var(--border-strong);
+  box-shadow: var(--cm-shadow-1);
+}
+
+.cm-search-ic {
+  display: flex;
+  color: var(--muted);
+}
+
+.cm-search-input,
+.cm-search-input:focus {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  outline: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+}
+
+.cm-search-input::placeholder {
+  color: var(--muted);
+}
+
+.cm-search-clear {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.cm-search-clear:hover {
+  background: var(--surface-3);
+  color: var(--text);
+}
+
+/* ---------------- icon buttons ---------------- */
+
+.cm-icon-btn {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: background .12s ease, color .12s ease;
+}
+
+.cm-icon-btn:hover:not(:disabled) {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.cm-icon-btn:active:not(:disabled) {
+  background: var(--surface-3);
+}
+
+.cm-icon-btn:disabled {
+  opacity: .3;
+  cursor: default;
+}
+
+.cm-icon-btn-sm {
+  width: 30px;
+  height: 30px;
+}
+
+.cm-icon-btn-sm .cm-ic {
+  width: 16px;
+  height: 16px;
+}
+
+.cm-icon-btn .cm-ic {
+  width: 20px;
+  height: 20px;
+}
+
+.cm-icon-btn.is-starred,
+.cm-star.is-starred {
+  color: var(--amber);
+}
+
+/* ---------------- list toolbar ---------------- */
+
+.cm-list-toolbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 12px 8px 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.cm-list-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.cm-list-count {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.cm-range {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.cm-list {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* ---------------- conversation rows ---------------- */
+
+.cm-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 16px 6px 6px;
+  border-bottom: 1px solid var(--border);
+  background-color: var(--surface);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+/* Read conversations sit a shade dimmer than unread ones — a black
+   wash darkens in Light and recedes in Dark, so it never inverts. */
+.cm-row:not(.is-unread) {
+  background-image: linear-gradient(rgba(0, 0, 0, .05), rgba(0, 0, 0, .05));
+}
+
+.cm-row:hover {
+  z-index: 1;
+  box-shadow: var(--cm-shadow-2), inset 0 0 0 1px var(--border);
+}
+
+.cm-row.is-selected {
+  background-color: var(--cm-blue-soft);
+  background-image: none;
+}
+
+.cm-row.is-focused {
+  box-shadow: inset 3px 0 0 var(--cm-blue);
+}
+
+.cm-star {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--faint);
+  cursor: pointer;
+}
+
+.cm-star:hover {
+  background: var(--surface-3);
+  color: var(--text-2);
+}
+
+.cm-star .cm-ic {
+  width: 19px;
+  height: 19px;
+}
+
+/* Gmail's row is ONE line: sender | subject — snippet | date */
+.cm-sender {
+  flex: 0 1 200px;
+  min-width: 70px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 14px;
+  color: var(--text-2);
+}
+
+.cm-count {
+  flex: none;
+  margin-left: -6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.cm-count:empty {
+  display: none;
+}
+
+.cm-line {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.cm-subject {
+  color: var(--text-2);
+}
+
+.cm-snippet {
+  color: var(--muted);
+}
+
+.cm-row-date {
+  flex: none;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.cm-row.is-unread .cm-sender,
+.cm-row.is-unread .cm-subject {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.cm-row.is-unread .cm-snippet {
+  color: var(--text-2);
+}
+
+/* hover actions replace the date, exactly like Gmail */
+.cm-row-actions {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: none;
+  align-items: center;
+  gap: 1px;
+}
+
+.cm-row:hover .cm-row-actions {
+  display: flex;
+}
+
+.cm-row:hover .cm-row-date {
+  visibility: hidden;
+}
+
+.cm-row-act {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.cm-row-act:hover {
+  background: var(--surface-3);
+  color: var(--text);
+}
+
+.cm-row-act .cm-ic {
+  width: 18px;
+  height: 18px;
+}
+
+/* ---------------- footer / skeletons / empty ---------------- */
+
+.list-footer {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 14px 8px;
+}
+
+.list-footer .statusline {
+  font-size: 12px;
+}
+
+.cm-skel-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.cm-skel {
+  height: 10px;
+  border-radius: 6px;
+  background: var(--surface-3);
+  animation: cm-pulse 1.5s ease-in-out infinite;
+}
+
+.cm-skel-a { flex: 0 0 180px; }
+.cm-skel-b { flex: 1; }
+
+@keyframes cm-pulse {
+  0%, 100% { opacity: .45; }
+  50% { opacity: .9; }
+}
+
+.cm-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 48px 26px;
+  text-align: center;
+}
+
+.cm-empty-art {
+  color: var(--faint);
+}
+
+.cm-empty-art .cm-ic {
+  width: 44px;
+  height: 44px;
+  stroke-width: 1.2;
+}
+
+.cm-empty-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.cm-empty-text {
+  max-width: 40ch;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.cm-empty-actions {
+  margin-top: 12px;
+}
+
+.cm-empty-pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 26px;
+  text-align: center;
+}
+
+.cm-empty-pane .cm-empty-art .cm-ic {
+  width: 52px;
+  height: 52px;
+  stroke-width: 1.1;
+}
+
+/* ---------------- thread view ---------------- */
+
+.cm-th-toolbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.cm-th-toolbar-sep {
+  width: 1px;
+  height: 22px;
+  margin: 0 8px;
+  background: var(--border);
+}
+
+#msg-view {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+/* The ID rule above outranks the platform [hidden] rule — re-assert it. */
+#msg-view[hidden] {
+  display: none;
+}
+
+.cm-th-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.cm-th-subject-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 20px 24px 8px;
+}
+
+/* thread heading — distinct class so it can never leak onto list rows */
+.cm-th-subject {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1.3;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.cm-chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cm-chip {
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: var(--surface-3);
+  color: var(--text-2);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.cm-chip.is-warn {
+  color: var(--amber);
+}
+
+/* one message inside the conversation */
+.cm-th-msg {
+  padding-bottom: 4px;
+}
+
+.cm-th-msg + .cm-th-msg {
+  border-top: 1px solid var(--border);
+}
+
+.cm-th-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 24px;
+  cursor: pointer;
+}
+
+.cm-th-msg:not(.is-expanded) .cm-th-head:hover {
+  background: var(--surface-2);
+}
+
+.cm-th-line {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.cm-th-name {
+  flex: none;
+  max-width: 40%;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cm-th-to {
+  display: none;
+  flex: none;
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.cm-th-msg.is-expanded .cm-th-to {
+  display: inline;
+}
+
+.cm-th-snippet {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.cm-th-msg.is-expanded .cm-th-snippet {
+  display: none;
+}
+
+.cm-th-date {
+  flex: none;
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.cm-th-content {
+  display: none;
+  padding: 0 24px 18px 64px;
+}
+
+.cm-th-msg.is-expanded .cm-th-content {
+  display: block;
+}
+
+.cm-th-text {
+  font-size: 14px;
+  line-height: 1.62;
+  color: var(--text);
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
+/* sandboxed (no scripts) so its height cannot be measured — tall
+   messages scroll inside the frame instead */
+.cm-th-iframe {
+  display: block;
+  width: 100%;
+  height: clamp(320px, 58vh, 720px);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.cm-th-atts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.cm-att {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 250px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+  font-size: 12.5px;
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.cm-att:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-3);
+}
+
+.cm-att.is-busy {
+  opacity: .7;
+  cursor: default;
+}
+
+.cm-att.is-saved {
+  border-color: var(--green);
+}
+
+.cm-att-ic {
+  display: flex;
+  color: var(--muted);
+}
+
+.cm-att-ic .cm-ic {
+  width: 16px;
+  height: 16px;
+}
+
+.cm-att-name {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.cm-att-size {
+  flex: none;
+  color: var(--muted);
+}
+
+.cm-reply-row {
+  flex: none;
+  display: flex;
+  gap: 10px;
+  padding: 12px 24px;
+  border-top: 1px solid var(--border);
+}
+
+.cm-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--cm-pill);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cm-pill:hover {
+  background: var(--surface-2);
+}
+
+.cm-pill-ic {
+  display: flex;
+}
+
+.cm-pill-ic .cm-ic {
+  width: 17px;
+  height: 17px;
+}
+
+/* ---------------- floating compose ---------------- */
+
+.cm-compose {
+  position: fixed;
+  right: 22px;
+  bottom: 0;
+  width: 520px;
+  max-width: calc(100vw - 32px);
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  border-bottom: none;
+  border-radius: 10px 10px 0 0;
+  background: var(--elevated);
+  box-shadow: var(--cm-shadow-3);
+}
+
+.cm-compose.is-minimized {
+  width: 288px;
+}
+
+.cm-compose.is-minimized .cm-compose-body,
+.cm-compose.is-minimized .cm-compose-foot {
+  display: none;
+}
+
+.cm-compose-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 8px 8px 14px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+}
+
+.cm-compose-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.cm-compose.is-minimized .cm-compose-title {
+  cursor: pointer;
+}
+
+.cm-compose-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.cm-compose-body {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.cm-compose-field {
+  border-bottom: 1px solid var(--border);
+}
+
+.cm-compose-input,
+.cm-compose-input:focus {
+  width: 100%;
+  padding: 11px 14px;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  outline: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 13.5px;
+}
+
+.cm-compose-input::placeholder,
+.cm-compose-textarea::placeholder {
+  color: var(--muted);
+}
+
+.cm-compose-textarea,
+.cm-compose-textarea:focus {
+  min-height: 190px;
+  max-height: 46vh;
+  padding: 12px 14px;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  outline: none;
+  resize: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+
+.cm-compose-confirm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--border);
+  background: var(--surface-2);
+  font-size: 12.5px;
+  color: var(--text-2);
+}
+
+.cm-compose-foot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--border);
+}
+
+.cm-compose-foot .statusline {
+  font-size: 12px;
+}
+
+.cm-send-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 9px 24px;
+  border: none;
+  border-radius: var(--cm-pill);
+  background: var(--cm-blue);
+  color: var(--cm-blue-fg);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cm-send-btn:hover {
+  opacity: .92;
+}
+
+.cm-send-btn:disabled {
+  opacity: .55;
+  cursor: default;
+}
+
+/* ---------------- labels (create + apply) ---------------- */
+
+.cm-nav-create .cm-nav-icon {
+  color: var(--text-2);
+}
+
+#labels-modal .modal,
+#newlabel-modal .modal {
+  width: 420px;
+  max-width: 92vw;
+}
+
+.cm-label-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  max-height: 46vh;
+  overflow: auto;
+}
+
+.cm-label-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.cm-label-row:hover {
+  background: var(--surface-2);
+}
+
+.cm-label-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--muted);
+}
+
+.cm-label-dot.is-none {
+  background: transparent;
+  border: 1px solid var(--border-strong);
+}
+
+.cm-label-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 13.5px;
+  color: var(--text);
+}
+
+.cm-labels-empty {
+  padding: 10px 4px;
+  font-size: 13px;
+}
+
+.cm-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cm-swatch {
+  box-sizing: border-box;
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  min-height: 26px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cm-swatch:hover {
+  opacity: .85;
+}
+
+.cm-swatch.is-selected {
+  border-color: var(--text);
+}
+
+.cm-swatch.is-none {
+  border: 1px dashed var(--border-strong);
+}
+
+.cm-swatch.is-none.is-selected {
+  border: 1px dashed var(--text);
+}
+
+/* ---------------- toast ---------------- */
+
+.cm-toast {
+  position: fixed;
+  left: 18px;
+  bottom: 18px;
+  z-index: 200;
+  max-width: 62%;
+  padding: 11px 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--elevated);
+  color: var(--text);
+  font-size: 13px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .28), 0 2px 8px rgba(0, 0, 0, .16);
+}
+
+.cm-toast.is-error {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+/* ---------------- settings modal ---------------- */
+
+#settings-modal .modal {
+  width: 620px;
+  max-width: 92vw;
+}
+
+.status-ok {
+  color: var(--green);
+}
+
+.status-warn {
+  color: var(--danger);
+}
+
+.settings-hint {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.settings-hint ol {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+
+.settings-hint li {
+  margin-bottom: 2px;
+}
+
+/* ---------------- guards + scrollbars ---------------- */
+
+/* Elements this app toggles with [hidden] also get a display rule here,
+   so the platform's [hidden] rule cannot be outranked. */
+#list-view[hidden],
+#thread-view[hidden],
+#msg-view[hidden],
+#msg-empty[hidden],
+#compose-panel[hidden],
+#compose-confirm[hidden],
+#compose-send-confirm[hidden],
+#btn-clear-search[hidden],
+#btn-archive[hidden],
+#btn-trash[hidden],
+#btn-untrash[hidden],
+#msg-chips[hidden],
+#settings-connected[hidden],
+#auth-step2[hidden],
+#labels-modal[hidden],
+#newlabel-modal[hidden],
+#cm-toast[hidden] {
+  display: none !important;
+}
+
+.cm-list::-webkit-scrollbar,
+.cm-nav::-webkit-scrollbar,
+.cm-th-scroll::-webkit-scrollbar {
+  width: 10px;
+}
+
+.cm-list::-webkit-scrollbar-thumb,
+.cm-nav::-webkit-scrollbar-thumb,
+.cm-th-scroll::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: var(--border-strong);
+  background-clip: content-box;
+}
+
+.cm-list::-webkit-scrollbar-thumb:hover,
+.cm-nav::-webkit-scrollbar-thumb:hover,
+.cm-th-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+  background-clip: content-box;
+}
