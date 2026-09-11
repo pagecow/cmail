@@ -755,7 +755,14 @@ function threadGroups() {
     }
     g.messages.push(m);
   }
-  return Array.from(map.values());
+  const groups = Array.from(map.values());
+  // The list API returns newest-first, but do not rely on that: sort each group
+  // explicitly so messages[0] is ALWAYS the newest message of the conversation —
+  // the row's sender, subject, snippet, date and read state all come from it.
+  for (const g of groups) {
+    g.messages.sort((a, b) => Number(b.internalDate || 0) - Number(a.internalDate || 0));
+  }
+  return groups;
 }
 
 function groupUnread(g) { return g.messages.some((m) => (m.labelIds || []).includes('UNREAD')); }
@@ -907,6 +914,54 @@ function openGroup() {
   return { id: currentThread.id, threadId: currentThread.threadId, messages: currentThread.messages };
 }
 
+/* The NEWEST message of the open conversation: the one that represents the
+   thread's current state (chips), the one reply/forward target, and the one
+   Gmail expands when a conversation opens. */
+function latestMessage() {
+  if (!currentThread || !currentThread.messages.length) return null;
+  return currentThread.messages[currentThread.messages.length - 1];
+}
+
+/* Gmail shows a conversation's subject without its Re:/Fwd: prefixes. A reply
+   can also arrive with an EMPTY subject while the thread has one, so walk from
+   the newest message back until a real subject turns up — taking it from the
+   oldest message showed "(no subject)" for threads whose first mail had none. */
+function stripSubjectPrefixes(s) {
+  let out = String(s || '');
+  let prev;
+  do {
+    prev = out;
+    out = out.replace(/^\s*(re|fwd|fw)\s*:\s*/i, '');
+  } while (out && out !== prev);
+  return out.trim();
+}
+
+function threadSubject() {
+  if (!currentThread) return '(no subject)';
+  let fallback = '';
+  for (let i = currentThread.messages.length - 1; i >= 0; i--) {
+    const raw = getHeader(currentThread.messages[i].payload, 'Subject');
+    if (!raw || !raw.trim()) continue;
+    const stripped = stripSubjectPrefixes(raw);
+    if (stripped) return stripped;          // a subject with real content wins
+    if (!fallback) fallback = raw.trim();
+  }
+  return fallback || '(no subject)';
+}
+
+/* A conversation's labels are the union of its messages' labels — the thread
+   lives in the inbox even when the newest message is one you sent. */
+function threadLabelIds() {
+  const out = [];
+  if (!currentThread) return out;
+  for (const m of currentThread.messages) {
+    for (const id of (m.labelIds || [])) {
+      if (out.indexOf(id) === -1) out.push(id);
+    }
+  }
+  return out;
+}
+
 async function openThread(threadId) {
   selectedThreadId = threadId;
   focusedId = threadId;
@@ -919,9 +974,12 @@ async function openThread(threadId) {
     const list = (t.messages || []).slice().sort((a, b) =>
       (Number(a.internalDate || 0) - Number(b.internalDate || 0)));
     currentThread = { id: threadId, threadId, messages: list };
-    currentMessage = list[list.length - 1] || null;
+    currentMessage = latestMessage();
+    // Gmail opens a conversation with its NEWEST message expanded and the older
+    // ones collapsed — expanding the oldest hid the mail you just received
+    // behind a collapsed row.
     expandedIds = {};
-    if (list.length) expandedIds[list[0].id] = true;   // oldest expanded, like Gmail
+    if (currentMessage) expandedIds[currentMessage.id] = true;
     renderThread();
     scheduleMarkRead();
   } catch (e) {
@@ -956,7 +1014,7 @@ const CHIP_LABELS = {
   DRAFT: 'Draft', SPAM: 'Spam', TRASH: 'Trash',
 };
 
-function renderChips(m) {
+function renderChips(m, labelIds) {
   const el = $('msg-chips');
   el.innerHTML = '';
   const names = [];
@@ -966,7 +1024,7 @@ function renderChips(m) {
   if (myDomain && theirDomain && theirDomain.toLowerCase() !== myDomain.toLowerCase()) {
     names.push('External');
   }
-  for (const id of (m.labelIds || [])) {
+  for (const id of (labelIds || m.labelIds || [])) {
     if (id === 'UNREAD' || id.indexOf('CATEGORY_') === 0) continue;
     const userLabel = labels.find((l) => l.id === id);
     const n = CHIP_LABELS[id] || (userLabel ? userLabel.name : null);
@@ -988,14 +1046,14 @@ function renderThread() {
     return;
   }
   const msgs = currentThread.messages;
-  const first = msgs[0];
+  const latest = latestMessage() || msgs[0];   // the thread's current state
   $('msg-empty').hidden = true;
   $('msg-view').hidden = false;
 
-  $('thread-subject').textContent = getHeader(first.payload, 'Subject') || '(no subject)';
-  renderChips(first);
+  $('thread-subject').textContent = threadSubject();
+  renderChips(latest, threadLabelIds());
 
-  const inTrash = (first.labelIds || []).includes('TRASH');
+  const inTrash = msgs.some((m) => (m.labelIds || []).includes('TRASH'));
   const unread = msgs.some((m) => (m.labelIds || []).includes('UNREAD'));
   $('btn-archive').hidden = inTrash;
   $('btn-trash').hidden = inTrash;
@@ -1009,6 +1067,10 @@ function renderThread() {
   for (const m of msgs) frag.appendChild(buildThreadMessage(m));
   wrap.appendChild(frag);
   wrap.scrollTop = 0;
+  // Open at the newest message (Gmail does the same): in a long thread the
+  // expanded message sits below the fold, so bring it into view.
+  const newestEl = wrap.lastElementChild;
+  if (newestEl) newestEl.scrollIntoView({ block: 'nearest' });
 }
 
 function buildThreadMessage(m) {
@@ -1415,7 +1477,8 @@ async function toggleThreadLabel(l, box) {
   const add = box.checked ? [l.id] : [];
   const remove = box.checked ? [] : [l.id];
   applyLabelsToIds(groupIds(g), add, remove, false);
-  if (currentThread) renderChips(currentThread.messages[0]);
+  const lm = latestMessage();
+  if (lm) renderChips(lm, threadLabelIds());
   box.disabled = true;
   setStatus('labels-status', (box.checked ? 'Applying \u201c' : 'Removing \u201c') + l.name + '\u201d\u2026');
   try {
@@ -1424,7 +1487,7 @@ async function toggleThreadLabel(l, box) {
   } catch (e) {
     box.checked = !box.checked;
     applyLabelsToIds(groupIds(g), remove, add, false);
-    if (currentThread) renderChips(currentThread.messages[0]);
+    if (lm) renderChips(lm, threadLabelIds());
     setStatus('labels-status', 'Could not update the label: ' + e.message, 'warn');
   }
   box.disabled = false;
