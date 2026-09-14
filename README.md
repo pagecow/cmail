@@ -11,7 +11,7 @@ A Gmail client for **[ChatOSS](https://chatoss.ai)** — read, send, star, archi
 - **Compose, reply, forward.** Replies open **empty** (the point is to write your own message) with proper `In-Reply-To` / `References` / `threadId` headers so they thread correctly; forwards carry the original text. Sending with no text asks first.
 - **Labels.** Create labels with Gmail's colour palette, and apply or remove them on a conversation.
 - **Attachments.** Click an attachment card to save the file into your ChatOSS Drive (`Attachments/…`).
-- **Check for updates.** The button in the top-right corner compares this build with the repo's latest release and opens the release page when a newer version is out.
+- **Check for updates.** In **Settings** (like Term Coder's): compares this build with the repo's latest release and opens the release page when a newer version is out. ChatOSS also shows its own **Check for updates** in the window titlebar when the app is installed from its repo.
 - **Keyboard shortcuts.** Gmail-style: `c` compose, `r` reply, `f` forward, `l` labels, `/` search, `j`/`k` move, `e` archive, `#` trash, `u` back, `Esc` close.
 
 ## Install

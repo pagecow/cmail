@@ -262,28 +262,25 @@
   flex: none;
 }
 
-/* "Check for updates" — top-right corner, next to the refresh button. */
-.cm-update-btn {
-  flex: none;
-  padding: 7px 13px;
-  border: 1px solid var(--border);
-  border-radius: var(--cm-pill);
-  background: transparent;
-  color: var(--text-2);
-  font: inherit;
-  font-size: 12.5px;
-  white-space: nowrap;
-  cursor: pointer;
+/* "Check for updates" lives in Settings (like Term Coder's) — the titlebar next
+   to the × is ChatOSS's own chrome and shows its own update control for apps
+   installed from a repo. */
+.cm-settings-updates {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
 }
 
-.cm-update-btn:hover:not(:disabled) {
-  border-color: var(--border-strong);
-  color: var(--text);
+.cm-settings-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 
-.cm-update-btn:disabled {
-  opacity: .6;
-  cursor: default;
+.cm-settings-updates .btn-row {
+  margin: 8px 0 6px;
 }
 
 .cm-update-text {

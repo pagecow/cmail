@@ -35,7 +35,6 @@
         <button id="btn-clear-search" class="cm-search-clear" type="button" title="Clear search" hidden>×</button>
       </div>
       <button id="btn-refresh" class="cm-icon-btn" type="button" title="Refresh" data-icon="refresh"></button>
-      <button id="btn-updates" class="cm-update-btn" type="button" title="Check the GitHub releases for a newer version">Check for updates</button>
     </header>
 
     <!-- Conversation list — full width -->
@@ -133,7 +132,7 @@
 <!-- Settings / auth -->
 <div id="settings-modal" class="overlay" hidden>
   <div class="modal">
-    <div class="modal-head">Gmail connection <button class="modal-close" id="settings-close">×</button></div>
+    <div class="modal-head">Settings <button class="modal-close" id="settings-close">×</button></div>
     <div class="modal-body">
       <div id="settings-connected" hidden>
         <div id="settings-account" class="statusline status-ok"></div>
@@ -168,6 +167,14 @@
           <button id="btn-paste" class="btn btn-sm">Paste from clipboard</button>
           <button id="btn-exchange" class="btn btn-primary btn-sm">Finish sign-in</button>
         </div>
+      </div>
+      <div class="cm-settings-updates">
+        <div class="cm-settings-label">Updates</div>
+        <div class="btn-row">
+          <button id="btn-updates" class="btn btn-sm" type="button">Check for updates</button>
+          <span id="settings-version" class="hint"></span>
+        </div>
+        <div class="hint">Cmail can’t replace its own files — when an update is available, open the release page to install it.</div>
       </div>
       <div id="settings-status" class="statusline"></div>
     </div>

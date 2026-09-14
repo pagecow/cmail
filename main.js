@@ -1546,7 +1546,7 @@ const UPDATE_REPO = 'pagecow/cmail';
 const UPDATE_APP_JSON_URL = 'https://raw.githubusercontent.com/' + UPDATE_REPO + '/main/app.json';
 const UPDATE_RELEASE_API_URL = 'https://api.github.com/repos/' + UPDATE_REPO + '/releases/latest';
 const UPDATE_RELEASES_PAGE = 'https://github.com/' + UPDATE_REPO + '/releases';
-const APP_VERSION = '0.4.2';   // fallback only — the manifest is the source of truth
+const APP_VERSION = '0.4.3';   // fallback only — the manifest is the source of truth
 
 /* "1.2.3" / "v1.2.3" → [1, 2, 3]; null when there is no leading number. */
 function parseVersion(v) {
@@ -1608,6 +1608,7 @@ async function checkForUpdates() {
   btn.textContent = 'Checking…';
   try {
     appVersion = await ownVersion();
+    $('settings-version').textContent = 'You have ' + appVersion + '.';
     const remote = await fetchLatestVersion();
     if (!remote) {
       showToast('Couldn’t check for updates — check your connection', true);
@@ -1617,6 +1618,7 @@ async function checkForUpdates() {
     } else {
       showToast('Cmail is up to date (' + appVersion + ')');
     }
+    $('settings-version').textContent = 'You have ' + appVersion + '.';
   } catch (e) {
     showToast('Couldn’t check for updates: ' + e.message, true);
   }
@@ -1797,6 +1799,8 @@ async function openSettings() {
   if (hasRefresh) {
     $('settings-account').textContent = profile ? 'Connected as ' + profile.emailAddress : 'Connected.';
   }
+  appVersion = await ownVersion();
+  $('settings-version').textContent = 'You have ' + appVersion + '.';
 }
 
 async function saveSettings() {

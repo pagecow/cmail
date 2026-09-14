@@ -1,7 +1,7 @@
 {
   "id": "com.cmail.app",
   "name": "Cmail",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "Read, send, star, archive, and trash mail from your own Gmail account.",
   "icon": "icon.svg",
   "capabilities": ["hostHttp", "secrets", "openExternal", "clipboardRead", "clipboardWrite", "drive"],
