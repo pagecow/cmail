@@ -354,6 +354,8 @@ async function afterConnect() {
     await loadLabels();
     await loadFolder(currentFolder, false);
     renderAccount();
+    // The feed can read mail now.
+    if (window.CFeed) window.CFeed.onConnected();
   } catch (e) {
     setStatus('list-status', e.message, 'warn');
   }
@@ -448,6 +450,12 @@ const ICON_PATHS = {
   chevronLeft: '<path d="M14.5 6l-6 6 6 6"/>',
   chevronRight: '<path d="M9.5 6l6 6-6 6"/>',
   plus: '<path d="M12 5.5v13M5.5 12h13"/>',
+  sparkle: '<path d="M11 3.6l1.9 5.1 5.1 1.9-5.1 1.9L11 17.6 9.1 12.5 4 10.6l5.1-1.9z"/>' +
+    '<path d="M18.4 14.6l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/>',
+  sliders: '<path d="M4 8h6M14 8h6M4 16h9M17 16h3"/>' +
+    '<circle cx="12" cy="8" r="2.1"/><circle cx="15" cy="16" r="2.1"/>',
+  openIn: '<path d="M14 4.5h5.5V10"/><path d="M19.5 4.5L11 13"/>' +
+    '<path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
 };
 
 function svgIcon(name) {
@@ -593,6 +601,7 @@ let composeMode = 'new';
 let composeThreadId = null;
 let composeReferences = null;
 let sendAnyway = false;      // set once the user confirms an empty-body send
+let returnToFeed = false;    // a conversation opened FROM the feed goes back there
 
 /* ---------------- account + folders ---------------- */
 
@@ -640,10 +649,13 @@ function safeColor(c) {
 function renderFolders() {
   const el = $('folder-list');
   el.innerHTML = '';
+  // The feed is a nav destination of its own: while it is showing, no folder
+  // stays highlighted — the folder is remembered, not selected.
+  const feedActive = !!(window.CFeed && window.CFeed.isActive());
   const add = (id, name, iconName, color) => {
     const b = document.createElement('button');
     b.type = 'button';
-    b.className = 'cm-nav-item' + (id === currentFolder ? ' is-selected' : '') +
+    b.className = 'cm-nav-item' + (!feedActive && id === currentFolder ? ' is-selected' : '') +
       (color ? ' is-labeled' : '');
     const icon = color
       ? '<span class="cm-nav-icon" style="color:' + color + '">' + svgIcon('labelFilled') + '</span>'
@@ -658,6 +670,21 @@ function renderFolders() {
     b.onclick = () => selectFolder(id);
     el.appendChild(b);
   };
+  // For you — the personalized feed, above the folders and the default tab.
+  const feed = document.createElement('button');
+  feed.type = 'button';
+  feed.className = 'cm-nav-item cm-nav-feed' +
+    (window.CFeed && window.CFeed.isActive() ? ' is-selected' : '');
+  feed.title = 'Your feed: the mail Cmail thinks you want to see';
+  feed.innerHTML = '<span class="cm-nav-icon">' + svgIcon('sparkle') + '</span>' +
+    '<span class="cm-nav-label truncate">For you</span><span class="cm-nav-count"></span>';
+  const feedCount = window.CFeed ? window.CFeed.navCount() : 0;
+  if (feedCount > 0) {
+    feed.querySelector('.cm-nav-count').textContent = feedCount > 99 ? '99+' : String(feedCount);
+  }
+  feed.onclick = () => { if (window.CFeed) window.CFeed.open(); };
+  el.appendChild(feed);
+
   for (const f of SYSTEM_FOLDERS) add(f.id, f.name, FOLDER_ICONS[f.id] || 'mail', null);
   const sep = document.createElement('div');
   sep.className = 'cm-nav-sep';
@@ -682,17 +709,25 @@ function renderListHead() {
 }
 
 function showList() {
+  // A conversation opened from the For you feed returns to the feed, not the list.
+  if (returnToFeed && window.CFeed) {
+    returnToFeed = false;
+    window.CFeed.open();
+    return;
+  }
   if (readTimer) { clearTimeout(readTimer); readTimer = null; }
   currentThread = null;
   currentMessage = null;
   $('thread-view').hidden = true;
   $('list-view').hidden = false;
+  if (window.CFeed) window.CFeed.hideView();
   renderList();
   renderPagination();
 }
 
 function selectFolder(id) {
   currentFolder = id;
+  returnToFeed = false;
   pageToken = null;
   pageHistory = [null];
   selectedThreadId = null;
@@ -967,6 +1002,10 @@ async function openThread(threadId) {
   selectedThreadId = threadId;
   focusedId = threadId;
   $('list-view').hidden = true;
+  // A conversation opened from the feed replaces the feed in the pane. The
+  // feed stays the nav's origin (still highlighted) and comes back on the way
+  // out; without this the feed view stayed in the layout and the two split it.
+  if (window.CFeed && window.CFeed.isActive()) $('feed-view').hidden = true;
   $('thread-view').hidden = false;
   showThreadPlaceholder('Loading conversation\u2026', '');
   if (readTimer) { clearTimeout(readTimer); readTimer = null; }
@@ -983,6 +1022,8 @@ async function openThread(threadId) {
     if (currentMessage) expandedIds[currentMessage.id] = true;
     renderThread();
     scheduleMarkRead();
+    // Opening a conversation is the feed's strongest "I care about this" signal.
+    if (window.CFeed) window.CFeed.recordOpen(threadId, currentThread.messages);
   } catch (e) {
     showThreadPlaceholder('Could not open conversation', e.message);
   }
@@ -1546,7 +1587,7 @@ const UPDATE_REPO = 'pagecow/cmail';
 const UPDATE_APP_JSON_URL = 'https://raw.githubusercontent.com/' + UPDATE_REPO + '/main/app.json';
 const UPDATE_RELEASE_API_URL = 'https://api.github.com/repos/' + UPDATE_REPO + '/releases/latest';
 const UPDATE_RELEASES_PAGE = 'https://github.com/' + UPDATE_REPO + '/releases';
-const APP_VERSION = '0.4.3';   // fallback only — the manifest is the source of truth
+const APP_VERSION = '0.5.1';   // fallback only — the manifest is the source of truth
 
 /* "1.2.3" / "v1.2.3" → [1, 2, 3]; null when there is no leading number. */
 function parseVersion(v) {
@@ -1767,6 +1808,9 @@ async function sendMail() {
     const payload = { raw };
     if (composeThreadId) payload.threadId = composeThreadId;
     await gmailRequest('messages/send', { method: 'POST', body: payload });
+    if (window.CFeed && sentMode === 'reply' && sentThreadId) {
+      window.CFeed.recordReply(sentThreadId, to);
+    }
     closeCompose(true);
     if (sentMode === 'reply' && sentThreadId && threadOpen() && currentThread.id === sentThreadId) {
       await openThread(sentThreadId);   // show your reply inside the conversation
@@ -2043,12 +2087,15 @@ async function boot() {
     try {
       profile = await gmailRequest('profile');
       await loadLabels();
-      await loadFolder(currentFolder);
       renderAccount();
     } catch (e) {
       setStatus('list-status', e.message, 'warn');
     }
   }
+  // For you is the default tab: it takes the main pane and loads its own data.
+  // A folder's list is fetched the first time you actually ask for that folder.
+  if (window.CFeed) window.CFeed.start();
+  else if (hasRefresh) await loadFolder(currentFolder);
 }
 
 boot();

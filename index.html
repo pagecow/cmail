@@ -37,6 +37,38 @@
       <button id="btn-refresh" class="cm-icon-btn" type="button" title="Refresh" data-icon="refresh"></button>
     </header>
 
+    <!-- For you — the personalized feed (default tab) -->
+    <section id="feed-view" class="cm-view" hidden>
+      <div class="cm-feed-head">
+        <span class="cm-feed-title">
+          <span class="cm-feed-spark" data-icon="sparkle" aria-hidden="true"></span>For you
+        </span>
+        <span id="feed-sub" class="cm-feed-sub"></span>
+        <span class="spacer"></span>
+        <span id="feed-status" class="statusline"></span>
+        <button id="feed-refresh" class="cm-icon-btn cm-icon-btn-sm" type="button" title="Refresh feed" data-icon="refresh"></button>
+        <button id="feed-tune" class="cm-icon-btn cm-icon-btn-sm" type="button" title="Tune your feed" data-icon="sliders"></button>
+      </div>
+      <div id="feed-scroll" class="cm-feed-scroll">
+        <div id="feed-onboard" class="cm-onboard" hidden>
+          <div class="cm-onboard-spark" data-icon="sparkle" aria-hidden="true"></div>
+          <h2 class="cm-onboard-title">What do you want to see?</h2>
+          <p class="cm-onboard-text">
+            Tell Cmail what you care about and it pulls the best of your inbox into one feed.
+            It also learns from what you open, star and reply to — so it gets sharper as you use it.
+          </p>
+          <textarea id="feed-interests" class="textarea cm-onboard-input" rows="3" spellcheck="false"
+            placeholder="e.g. Real mail from people, school and club updates, package deliveries, anything about the boat — skip receipts, promos and newsletters I never open."></textarea>
+          <div class="btn-row">
+            <button id="feed-build" class="btn btn-primary" type="button">Build my feed</button>
+            <button id="feed-skip" class="btn btn-ghost" type="button">Skip — use my reading habits</button>
+          </div>
+          <div id="feed-onboard-status" class="statusline"></div>
+        </div>
+        <div id="feed-grid" class="cm-feed-grid"></div>
+      </div>
+    </section>
+
     <!-- Conversation list — full width -->
     <section id="list-view" class="cm-view">
       <div class="cm-list-toolbar">
@@ -238,8 +270,51 @@
   </div>
 </div>
 
+<!-- Tune the For you feed — interests, model, muted senders, feed data -->
+<div id="feed-tune-modal" class="overlay" hidden>
+  <div class="modal">
+    <div class="modal-head">Tune your feed <button class="modal-close" id="feed-tune-close">×</button></div>
+    <div class="modal-body">
+      <div class="field">
+        <label class="label" for="feed-interests-modal">What should Cmail look for?</label>
+        <textarea id="feed-interests-modal" class="textarea" rows="4" spellcheck="false"
+          placeholder="e.g. Real mail from people, deliveries, news I actually read — skip receipts and promos."></textarea>
+        <div class="hint">Changing this re-ranks the feed — Cmail re-reads the mail it already ranked with your new interests.</div>
+      </div>
+      <div class="field">
+        <label class="label" for="feed-model">Model</label>
+        <select id="feed-model" class="select"></select>
+        <div class="hint">Cmail picks your highlights and writes the summaries with this model.</div>
+      </div>
+      <div class="field">
+        <label class="label">Muted senders</label>
+        <div id="feed-muted" class="cm-muted-list"></div>
+      </div>
+      <div class="field">
+        <label class="label">Feed data</label>
+        <div class="btn-row">
+          <button id="feed-rebuild" class="btn btn-sm" type="button">Rebuild feed</button>
+          <button id="feed-clear" class="btn btn-sm btn-danger" type="button">Clear feed history</button>
+        </div>
+        <div id="feed-data-hint" class="hint"></div>
+        <div id="feed-clear-confirm" class="cm-inline-confirm" hidden>
+          Delete everything the feed has learned? Your mail is untouched — only Cmail’s own notes are removed.
+          <span class="spacer"></span>
+          <button id="feed-clear-yes" class="btn btn-sm btn-danger" type="button">Delete</button>
+          <button id="feed-clear-no" class="btn btn-sm" type="button">Keep</button>
+        </div>
+      </div>
+      <div id="feed-tune-status" class="statusline"></div>
+    </div>
+    <div class="modal-foot">
+      <button id="feed-tune-save" class="btn btn-primary" type="button">Save</button>
+    </div>
+  </div>
+</div>
+
 <div id="cm-toast" class="cm-toast" hidden></div>
 
 <script src="main.js"></script>
+<script src="feed.js"></script>
 </body>
 </html>

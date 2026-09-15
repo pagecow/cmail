@@ -1254,12 +1254,448 @@
   margin-bottom: 2px;
 }
 
+/* ---------------- For you — the personalized feed ---------------- */
+
+.cm-nav-feed .cm-nav-icon {
+  color: var(--cm-blue);
+}
+
+.cm-feed-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 12px 10px 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.cm-feed-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.cm-feed-spark {
+  display: flex;
+  color: var(--cm-blue);
+}
+
+.cm-feed-spark .cm-ic {
+  width: 17px;
+  height: 17px;
+}
+
+.cm-feed-sub {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cm-feed-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px 18px 28px;
+}
+
+/* Rows of tiles on a desktop pane, a single column on a phone. */
+.cm-feed-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px;
+  align-items: stretch;
+}
+
+@media (max-width: 760px) {
+  .cm-feed-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cm-feed-scroll {
+    padding: 12px 12px 24px;
+  }
+}
+
+.cm-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 254px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background-color: var(--surface);
+  box-shadow: var(--cm-shadow-1);
+  overflow: hidden;
+  transition: box-shadow .15s ease;
+}
+
+.cm-card:hover {
+  box-shadow: var(--cm-shadow-2);
+}
+
+/* Already-read mail sits a shade dimmer, exactly like a read row. */
+.cm-card.is-read {
+  background-image: linear-gradient(rgba(0, 0, 0, .05), rgba(0, 0, 0, .05));
+}
+
+.cm-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 10px 0 14px;
+}
+
+.cm-card-av {
+  position: relative;
+  flex: none;
+  width: 34px;
+  height: 34px;
+}
+
+.cm-card-initial {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--surface-3);
+  color: var(--text-2);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+/* The sender's own favicon, when it loads; the coloured initial otherwise. */
+.cm-card-fav {
+  position: absolute;
+  inset: 5px;
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  border-radius: 6px;
+  background: var(--surface);
+  display: none;
+}
+
+.cm-card-av.has-fav .cm-card-initial {
+  display: none;
+}
+
+.cm-card-av.has-fav .cm-card-fav {
+  display: block;
+}
+
+.cm-card-who {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+
+.cm-card-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.cm-card-meta {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+/* Read / unread, the way the list marks it: unread keeps a dot and the bold
+   weight, read mail recedes into the dimming wash. */
+.cm-card-dot {
+  flex: none;
+  display: none;
+  width: 8px;
+  height: 8px;
+  margin-left: 2px;
+  border-radius: 50%;
+  background: var(--cm-blue);
+}
+
+.cm-card.is-unread .cm-card-dot {
+  display: block;
+}
+
+.cm-card.is-unread .cm-card-name,
+.cm-card.is-unread .cm-card-subject {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.cm-card.is-read .cm-card-name,
+.cm-card.is-read .cm-card-subject {
+  color: var(--text-2);
+  font-weight: 500;
+}
+
+.cm-card-x {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--faint);
+  cursor: pointer;
+}
+
+.cm-card-x:hover {
+  background: var(--surface-3);
+  color: var(--text-2);
+}
+
+.cm-card-x .cm-ic {
+  width: 13px;
+  height: 13px;
+}
+
+.cm-card-subject {
+  margin: 10px 14px 0;
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 1.35;
+  color: var(--text);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.cm-card-why {
+  margin: 6px 14px 0;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.cm-card-why::before {
+  content: "✦ ";
+  color: var(--faint);
+}
+
+.cm-card-body {
+  flex: 1;
+  min-height: 64px;
+  max-height: 200px;
+  margin: 10px 14px 0;
+  overflow: auto;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text-2);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.cm-card-more {
+  display: block;
+  margin: 8px 14px 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--link);
+  font: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cm-card-foot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 9px 10px 9px 12px;
+  border-top: 1px solid var(--border);
+}
+
+.cm-card-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-2);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.cm-card-btn:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.cm-card-btn .cm-ic {
+  width: 14px;
+  height: 14px;
+}
+
+/* The filled button on a card is a neutral one — the accent is reserved for
+   the unread dot, so a grid of tiles never turns into a colour clash. */
+.cm-card-btn.is-primary {
+  background: var(--surface-2);
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.cm-card-btn.is-primary:hover {
+  background: var(--surface-3);
+  color: var(--text);
+}
+
+.cm-card-reply {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 12px 12px;
+}
+
+.cm-card-reply textarea {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 66px;
+  padding: 9px 11px;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.cm-card-reply-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cm-card-sent {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--green);
+}
+
+.cm-card-badge {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .02em;
+  color: var(--green);
+}
+
+/* ---------------- onboarding + tune ---------------- */
+
+.cm-onboard {
+  max-width: 560px;
+  margin: 6px auto 18px;
+  padding: 22px 24px 20px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--cm-shadow-1);
+}
+
+.cm-onboard-spark {
+  display: flex;
+  color: var(--cm-blue);
+}
+
+.cm-onboard-spark .cm-ic {
+  width: 26px;
+  height: 26px;
+}
+
+.cm-onboard-title {
+  margin: 10px 0 6px;
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.cm-onboard-text {
+  margin: 0 0 12px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.cm-onboard-input {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 12px;
+}
+
+.cm-muted-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.cm-muted-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.cm-muted-row .spacer {
+  flex: 1;
+}
+
+.cm-inline-confirm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--danger);
+  border-radius: 10px;
+  background: var(--danger-soft);
+  font-size: 12.5px;
+  color: var(--text-2);
+}
+
 /* ---------------- guards + scrollbars ---------------- */
 
 /* Elements this app toggles with [hidden] also get a display rule here,
    so the platform's [hidden] rule cannot be outranked. */
 #list-view[hidden],
 #thread-view[hidden],
+#feed-view[hidden],
+#feed-onboard[hidden],
+#feed-clear-confirm[hidden],
+.cm-card-reply[hidden],
 #msg-view[hidden],
 #msg-empty[hidden],
 #compose-panel[hidden],
@@ -1274,6 +1710,7 @@
 #auth-step2[hidden],
 #labels-modal[hidden],
 #newlabel-modal[hidden],
+#feed-tune-modal[hidden],
 #update-modal[hidden],
 #cm-toast[hidden] {
   display: none !important;
@@ -1281,12 +1718,16 @@
 
 .cm-list::-webkit-scrollbar,
 .cm-nav::-webkit-scrollbar,
+.cm-feed-scroll::-webkit-scrollbar,
+.cm-card-body::-webkit-scrollbar,
 .cm-th-scroll::-webkit-scrollbar {
   width: 10px;
 }
 
 .cm-list::-webkit-scrollbar-thumb,
 .cm-nav::-webkit-scrollbar-thumb,
+.cm-feed-scroll::-webkit-scrollbar-thumb,
+.cm-card-body::-webkit-scrollbar-thumb,
 .cm-th-scroll::-webkit-scrollbar-thumb {
   border: 3px solid transparent;
   border-radius: 999px;
@@ -1296,6 +1737,8 @@
 
 .cm-list::-webkit-scrollbar-thumb:hover,
 .cm-nav::-webkit-scrollbar-thumb:hover,
+.cm-feed-scroll::-webkit-scrollbar-thumb:hover,
+.cm-card-body::-webkit-scrollbar-thumb:hover,
 .cm-th-scroll::-webkit-scrollbar-thumb:hover {
   background: var(--muted);
   background-clip: content-box;

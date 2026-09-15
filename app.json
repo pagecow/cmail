@@ -1,10 +1,10 @@
 {
   "id": "com.cmail.app",
   "name": "Cmail",
-  "version": "0.4.3",
+  "version": "0.5.1",
   "description": "Read, send, star, archive, and trash mail from your own Gmail account.",
   "icon": "icon.svg",
-  "capabilities": ["hostHttp", "secrets", "openExternal", "clipboardRead", "clipboardWrite", "drive"],
+  "capabilities": ["hostHttp", "secrets", "openExternal", "clipboardRead", "clipboardWrite", "drive", "sqlite", "chatApi"],
   "httpAllowlist": ["gmail.googleapis.com", "oauth2.googleapis.com", "raw.githubusercontent.com", "api.github.com"],
   "openExternalAllowlist": ["accounts.google.com", "github.com"],
   "scopedDataKeys": ["cmail.state"]
