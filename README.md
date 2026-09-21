@@ -8,6 +8,9 @@ A Gmail client for **[ChatOSS](https://chatoss.ai)** — read, send, star, archi
 
 - **Your own Gmail account.** An OAuth desktop flow — no middleman server. The client secret and refresh token live in the OS keychain through ChatOSS `secrets`, never in a file.
 - **Full inbox.** Threaded conversation list, unread styling, star / archive / trash / restore, mark as read, search, and paging through older mail.
+- **“For you” — a feed of your best mail.** An AI pass ranks the newest mail and pulls the things worth seeing into one screen, learning from what you open, star and reply to. Read mail stays on the feed, and the **All / Unread** toggle filters it.
+- **Three ways to look at it.** **Tiles** that wrap in rows, **rows** that give each mail the full width, and **columns** that give each one the full height and scroll sideways. Your choice is remembered.
+- **Read the mail on the card.** “See full email” opens the whole message inside the card — with room to read, it stays open across refreshes, and clicks while reading never send you somewhere else.
 - **Compose, reply, forward.** Replies open **empty** (the point is to write your own message) with proper `In-Reply-To` / `References` / `threadId` headers so they thread correctly; forwards carry the original text. Sending with no text asks first.
 - **Labels.** Create labels with Gmail's colour palette, and apply or remove them on a conversation.
 - **Attachments.** Click an attachment card to save the file into your ChatOSS Drive (`Attachments/…`).
@@ -16,7 +19,7 @@ A Gmail client for **[ChatOSS](https://chatoss.ai)** — read, send, star, archi
 
 ## Install
 
-1. Download **`app-v0.4.0.aip`** from the [latest release](../../releases/latest) (the `.zip` is the same archive).
+1. Download **`app-v0.6.0.aip`** from the [latest release](../../releases/latest) (the `.zip` is the same archive).
 2. Drop it onto the **Apps** app in ChatOSS — or use Create → Publish.
 3. Open Cmail from your dock and follow the in-app setup to connect Gmail.
 
@@ -37,7 +40,8 @@ Plain HTML/CSS/JavaScript with no build step and no dependencies:
 ```
 app.json     manifest (capabilities, hosts, icon)
 index.html   the app shell
-main.js      Gmail/OAuth core + the UI layer
+main.js      Gmail/OAuth core + the Gmail-shaped UI (list, thread, compose)
+feed.js      “For you”: ranking, the feed database, the three layouts
 style.css    layout, built on ChatOSS theme tokens
 icon.svg     dock icon
 ```

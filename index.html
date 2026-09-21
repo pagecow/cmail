@@ -46,6 +46,22 @@
         <span id="feed-sub" class="cm-feed-sub"></span>
         <span class="spacer"></span>
         <span id="feed-status" class="statusline"></span>
+        <div class="cm-feed-controls">
+          <div id="feed-filter" class="seg cm-feed-seg" role="group" aria-label="Which mail to show">
+            <button type="button" class="seg-item is-active" data-filter="all"
+              title="Read and unread mail">All</button>
+            <button type="button" class="seg-item" data-filter="unread"
+              title="Only unread mail">Unread</button>
+          </div>
+          <div id="feed-viewmode" class="seg cm-feed-seg" role="group" aria-label="Feed layout">
+            <button type="button" class="seg-item cm-feed-view-btn is-active" data-view="grid"
+              title="Grid view" aria-label="Grid view" data-icon="viewGrid"></button>
+            <button type="button" class="seg-item cm-feed-view-btn" data-view="rows"
+              title="Row view" aria-label="Row view" data-icon="viewRows"></button>
+            <button type="button" class="seg-item cm-feed-view-btn" data-view="columns"
+              title="Column view" aria-label="Column view" data-icon="viewCols"></button>
+          </div>
+        </div>
         <button id="feed-refresh" class="cm-icon-btn cm-icon-btn-sm" type="button" title="Refresh feed" data-icon="refresh"></button>
         <button id="feed-tune" class="cm-icon-btn cm-icon-btn-sm" type="button" title="Tune your feed" data-icon="sliders"></button>
       </div>

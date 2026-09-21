@@ -1295,6 +1295,49 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
+}
+
+/* The feed's two controls: what to show (All / Unread) and how to lay it out
+   (tiles / rows / sideways columns). Both remember the choice in the app DB.
+   The selected state is the platform's own .is-active, so the pill, its raised
+   shadow and its colours stay right in both ChatOSS themes. */
+.cm-feed-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+.cm-feed-seg {
+  width: auto;
+  height: 30px;
+  padding: 3px;
+  flex: none;
+}
+
+.cm-feed-seg .seg-item {
+  flex: 0 0 auto;
+  padding: 0 11px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.cm-feed-view-btn {
+  width: 34px;
+  padding: 0;
+}
+
+.cm-feed-view-btn .cm-ic {
+  width: 15px;
+  height: 15px;
+}
+
+.cm-feed-head .statusline {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .cm-feed-scroll {
@@ -1312,6 +1355,37 @@
   align-items: stretch;
 }
 
+/* Row view — one mail per line, the full width of the pane. */
+.cm-feed-grid.is-rows {
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.cm-feed-grid.is-rows .cm-card {
+  min-height: 0;
+}
+
+/* Column view — every card takes the full height and the pane scrolls
+   sideways, so a wide window shows a rack of mail instead of a stack. */
+.cm-feed-scroll.is-columns {
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+.cm-feed-grid.is-columns {
+  grid-template-columns: none;
+  grid-auto-flow: column;
+  grid-auto-columns: min(360px, 78vw);
+  grid-template-rows: minmax(0, 1fr);
+  height: 100%;
+  gap: 14px;
+}
+
+.cm-feed-grid.is-columns .cm-card {
+  min-height: 0;
+  overflow-y: auto;
+}
+
 @media (max-width: 760px) {
   .cm-feed-grid {
     grid-template-columns: 1fr;
@@ -1319,6 +1393,10 @@
 
   .cm-feed-scroll {
     padding: 12px 12px 24px;
+  }
+
+  .cm-feed-sub {
+    display: none;
   }
 }
 
@@ -1502,6 +1580,18 @@
   color: var(--text-2);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+/* An email you asked to read in full gets room to be read — the card grows
+   instead of squeezing the whole message into the summary's box. */
+.cm-card.is-expanded .cm-card-body {
+  max-height: min(52vh, 440px);
+}
+
+/* In column view the card IS the height: the text fills it and scrolls. */
+.cm-feed-grid.is-columns .cm-card-body,
+.cm-feed-grid.is-columns .cm-card.is-expanded .cm-card-body {
+  max-height: none;
 }
 
 .cm-card-more {

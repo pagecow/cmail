@@ -456,6 +456,15 @@ const ICON_PATHS = {
     '<circle cx="12" cy="8" r="2.1"/><circle cx="15" cy="16" r="2.1"/>',
   openIn: '<path d="M14 4.5h5.5V10"/><path d="M19.5 4.5L11 13"/>' +
     '<path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
+  // For you — the three feed layouts (tiles / one per row / sideways columns).
+  viewGrid: '<rect x="3.8" y="3.8" width="7.1" height="7.1" rx="1.7"/>' +
+    '<rect x="13.1" y="3.8" width="7.1" height="7.1" rx="1.7"/>' +
+    '<rect x="3.8" y="13.1" width="7.1" height="7.1" rx="1.7"/>' +
+    '<rect x="13.1" y="13.1" width="7.1" height="7.1" rx="1.7"/>',
+  viewRows: '<rect x="3.8" y="5" width="16.4" height="5.4" rx="1.7"/>' +
+    '<rect x="3.8" y="13.6" width="16.4" height="5.4" rx="1.7"/>',
+  viewCols: '<rect x="3.8" y="4.2" width="6.4" height="15.6" rx="1.7"/>' +
+    '<rect x="13.8" y="4.2" width="6.4" height="15.6" rx="1.7"/>',
 };
 
 function svgIcon(name) {
@@ -1587,7 +1596,7 @@ const UPDATE_REPO = 'pagecow/cmail';
 const UPDATE_APP_JSON_URL = 'https://raw.githubusercontent.com/' + UPDATE_REPO + '/main/app.json';
 const UPDATE_RELEASE_API_URL = 'https://api.github.com/repos/' + UPDATE_REPO + '/releases/latest';
 const UPDATE_RELEASES_PAGE = 'https://github.com/' + UPDATE_REPO + '/releases';
-const APP_VERSION = '0.5.1';   // fallback only — the manifest is the source of truth
+const APP_VERSION = '0.6.0';   // fallback only — the manifest is the source of truth
 
 /* "1.2.3" / "v1.2.3" → [1, 2, 3]; null when there is no leading number. */
 function parseVersion(v) {

@@ -31,8 +31,10 @@ const BATCH = 12;                // messages (re)ranked per AI run — bounds th
 const SHORT = 520;               // <= this many characters: the card shows the mail itself
 const TEXT_CAP = 12000;          // body text kept per card (so "see full email" works offline)
 const PROMPT_TEXT = 1400;        // body characters sent to the model per message
-const READ_SINK = 18;            // a card you have already read drops below the unread ones
+const READ_SINK = 6;             // a card you have already read sits a little below the unread ones
 const AUTO_MS = 20 * 60 * 1000;  // don't re-scan more often than this on open
+const VIEWS = ['grid', 'rows', 'columns'];
+const FILTERS = ['all', 'unread'];
 
 const $id = (id) => document.getElementById(id);
 const enc = encodeURIComponent;
@@ -55,6 +57,17 @@ const F = {
   navCount: 0,
   lastRun: 0,
   statusTimer: null,
+  // View state — how the feed looks and what it shows (both remembered in prefs).
+  view: 'grid',                  // grid | rows | columns
+  filter: 'all',                 // all | unread
+  // Cards the reader has opened with “See full email”. Rebuilding the grid used
+  // to collapse them again — reading an email and losing it mid-paragraph.
+  expanded: new Set(),
+  bodyScroll: new Map(),         // msg_id → how far into the text the reader was
+  replies: new Map(),            // msg_id → a reply being written on that card
+  scroll: { top: 0, left: 0 },   // where the feed pane itself was scrolled
+  renderSig: '',                 // what the grid currently paints (skip needless rebuilds)
+  domIds: new Set(),
 };
 
 /* ---------------- the database ---------------- */
@@ -176,6 +189,11 @@ async function loadCards() {
     F.cards = rows.map((r) => Object.assign({}, r, {
       display: displayScore(r),
     }));
+    // Drop view state for mail that is no longer in the feed.
+    const live = new Set(F.cards.map((c) => c.msg_id));
+    for (const id of Array.from(F.expanded)) if (!live.has(id)) F.expanded.delete(id);
+    for (const id of Array.from(F.bodyScroll.keys())) if (!live.has(id)) F.bodyScroll.delete(id);
+    for (const id of Array.from(F.replies.keys())) if (!live.has(id)) F.replies.delete(id);
     F.navCount = F.cards.filter(isUnread).length;
   } catch (e) {
     F.cards = [];
@@ -550,15 +568,17 @@ function heuristicScore(it) {
 
 /* ---------------- rendering ---------------- */
 
-function renderFeed() {
+function renderFeed(force) {
   const grid = $id('feed-grid');
   const onboard = $id('feed-onboard');
   if (!grid) return;
-  grid.innerHTML = '';
   if (F.dbError) {
     if (onboard) onboard.hidden = true;
     setSub('');
+    grid.innerHTML = '';
+    F.domIds = new Set();
     grid.appendChild(emptyState('spam', 'Could not open the feed database', F.dbError));
+    F.renderSig = 'db-error';
     return;
   }
   if (!F.ready) {
@@ -569,33 +589,89 @@ function renderFeed() {
   if (!hasRefresh) {
     if (onboard) onboard.hidden = true;
     setSub('');
+    grid.innerHTML = '';
+    F.domIds = new Set();
     grid.appendChild(connectEmptyState());
+    F.renderSig = 'no-account';
     return;
   }
   const showOnboard = !F.seeded && !F.cards.length;
   if (onboard) onboard.hidden = !showOnboard;
-  const ranked = F.cards.slice().sort((a, b) =>
+  // All / Unread — read mail is part of the feed too; Unread is just a lens on it.
+  const shown = F.cards.filter((c) => F.filter === 'all' || isUnread(c));
+  const ranked = shown.slice().sort((a, b) =>
     (b.display - a.display) || ((b.date_ms || 0) - (a.date_ms || 0)));
   setSub(ranked.length
-    ? ranked.length + (ranked.length === 1 ? ' highlight' : ' highlights') +
+    ? (F.filter === 'unread'
+        ? ranked.length + ' unread' + (F.cards.length ? ' of ' + F.cards.length : '')
+        : ranked.length + (ranked.length === 1 ? ' highlight' : ' highlights')) +
       (F.lastRun ? ' · updated ' + gmailDate(new Date(F.lastRun).toISOString()) : '')
     : '');
+
+  // Nothing that is painted changed: keep the DOM — and everything the reader
+  // has open inside it — exactly as it is. Rebuilding here is what used to throw
+  // away a card's full email (and its scroll position) mid-read.
+  const sig = (ranked.length
+    ? ranked.map(cardSignature).join('|')
+    : 'empty|' + (F.busy ? 'busy' : 'idle') + '|' + (F.seeded ? 'seeded' : 'new') +
+      '|' + F.cards.length) + '|' + F.filter + '|' + F.view;
+  const intact = ranked.length === F.domIds.size &&
+    ranked.every((c) => F.domIds.has(c.msg_id));
+  if (!force && sig === F.renderSig && intact) return;
+  F.renderSig = sig;
+
+  // Remember where the reader was, then put them back after the rebuild.
+  const scroller = $id('feed-scroll');
+  if (scroller) { F.scroll.top = scroller.scrollTop; F.scroll.left = scroller.scrollLeft; }
+  grid.querySelectorAll('.cm-card').forEach((el) => {
+    const body = el.querySelector('.cm-card-body');
+    if (body && body.scrollTop) F.bodyScroll.set(el.dataset.id, body.scrollTop);
+  });
+
+  grid.innerHTML = '';
+  F.domIds = new Set();
   if (!ranked.length && !showOnboard && !F.busy) {
-    grid.appendChild(emptyState('sparkle', F.seeded ? 'Nothing new right now' : 'No highlights yet',
-      F.seeded
-        ? 'Cmail has nothing to highlight. Tap refresh in the toolbar to look again.'
-        : 'Tap refresh in the toolbar and Cmail will read your newest mail.'));
+    if (F.filter === 'unread' && F.cards.length) {
+      grid.appendChild(emptyState('mailOpen', 'Nothing unread right now',
+        'Every mail in the feed is read. Switch to All to see the mail you have already read.'));
+    } else {
+      grid.appendChild(emptyState('sparkle', F.seeded ? 'Nothing new right now' : 'No highlights yet',
+        F.seeded
+          ? 'Cmail has nothing to highlight. Tap refresh in the toolbar to look again.'
+          : 'Tap refresh in the toolbar and Cmail will read your newest mail.'));
+    }
   }
   const frag = document.createDocumentFragment();
-  for (const c of ranked) frag.appendChild(buildCard(c));
+  for (const c of ranked) { frag.appendChild(buildCard(c)); F.domIds.add(c.msg_id); }
   grid.appendChild(frag);
+
+  grid.querySelectorAll('.cm-card').forEach((el) => {
+    const top = F.bodyScroll.get(el.dataset.id);
+    if (top) {
+      const body = el.querySelector('.cm-card-body');
+      if (body) body.scrollTop = top;
+    }
+  });
+  if (scroller) { scroller.scrollTop = F.scroll.top; scroller.scrollLeft = F.scroll.left; }
+}
+
+/* Everything a card's DOM depends on — if none of it moved, the grid is already
+   right and a rebuild would only cost the reader their place. */
+function cardSignature(c) {
+  return [
+    c.msg_id, Math.round(Number(c.display) || 0), c.starred ? 1 : 0, c.replied_at ? 1 : 0,
+    isUnread(c) ? 1 : 0, c.subject || '', c.reason || '', c.topic || '', c.date_ms || 0,
+    String(c.summary || ''), String(c.body_text || '').length,
+  ].join('~');
 }
 
 function buildCard(c) {
   const el = document.createElement('article');
-  el.className = 'cm-card ' + (isUnread(c) ? 'is-unread' : 'is-read');
+  // A card the reader opened stays open across re-renders (refresh, tab switch…).
+  let summaryMode = !!c.is_long && !F.expanded.has(c.msg_id);
+  el.className = 'cm-card ' + (isUnread(c) ? 'is-unread' : 'is-read') +
+    (summaryMode ? '' : ' is-expanded');
   el.dataset.id = c.msg_id;
-  let summaryMode = !!c.is_long;
 
   el.innerHTML =
     '<div class="cm-card-head">' +
@@ -675,6 +751,7 @@ function buildCard(c) {
     const text = summaryMode ? (c.summary || c.snippet || '') : (c.body_text || c.snippet || '');
     bodyEl.textContent = text || '(This message has no text.)';
     bodyEl.classList.toggle('is-text', !summaryMode);
+    el.classList.toggle('is-expanded', !summaryMode);
     const cut = String(c.body_text || '').length >= TEXT_CAP - 1;
     moreHint.hidden = !(cut && !summaryMode);
   };
@@ -682,25 +759,37 @@ function buildCard(c) {
 
   // Long mail: the card shows the summary until you ask for the whole thing.
   const seeBtn = el.querySelector('.cm-card-see');
+  const paintSee = () => {
+    if (seeBtn) {
+      seeBtn.querySelector('span').textContent = summaryMode
+        ? 'See full email'
+        : (c.summary ? 'Show summary' : 'Show less');
+    }
+  };
   if (seeBtn) {
     seeBtn.onclick = (e) => {
       e.stopPropagation();
       summaryMode = !summaryMode;
-      seeBtn.querySelector('span').textContent = summaryMode ? 'See full email' : 'Show summary';
+      if (summaryMode) F.expanded.delete(c.msg_id);
+      else F.expanded.add(c.msg_id);
+      paintSee();
       paintBody();
       if (!summaryMode) markCardRead(c, el);
     };
+    paintSee();     // a card rebuilt while open keeps its “Show summary” label
   }
 
-  // Clicking the mail itself opens the conversation — but selecting text is not a click.
+  // Clicking the mail itself opens the conversation — but selecting text is not
+  // a click, and a card you are READING in full must not navigate away on a
+  // stray click: that is what made the full email seem to vanish.
   const openOnClick = (e) => {
+    if (F.expanded.has(c.msg_id)) return;
     const sel = window.getSelection ? String(window.getSelection()) : '';
     if (sel) return;
     openConversation(c);
   };
   el.querySelector('.cm-card-subject').onclick = openOnClick;
   bodyEl.onclick = openOnClick;
-
   el.querySelector('.cm-card-x').onclick = (e) => { e.stopPropagation(); notInterested(c, el); };
   el.querySelector('.cm-card-open').onclick = (e) => { e.stopPropagation(); openConversation(c); };
   el.querySelector('.cm-card-archive').onclick = (e) => { e.stopPropagation(); archiveCard(c, el); };
@@ -708,6 +797,16 @@ function buildCard(c) {
 
   const replyWrap = el.querySelector('.cm-card-reply');
   const replyInput = el.querySelector('.cm-card-reply-input');
+  // A half-written reply must not vanish when the grid rebuilds under it.
+  const draft = F.replies.get(c.msg_id);
+  if (draft) {
+    replyWrap.hidden = false;
+    replyInput.value = draft;
+  }
+  replyInput.addEventListener('input', () => {
+    if (replyInput.value) F.replies.set(c.msg_id, replyInput.value);
+    else F.replies.delete(c.msg_id);
+  });
   el.querySelector('.cm-card-reply-btn').onclick = (e) => {
     e.stopPropagation();
     replyWrap.hidden = false;
@@ -717,6 +816,7 @@ function buildCard(c) {
     e.stopPropagation();
     replyWrap.hidden = true;
     replyInput.value = '';
+    F.replies.delete(c.msg_id);
     setElStatus(el.querySelector('.cm-card-reply-status'), '');
   };
   el.querySelector('.cm-card-reply-send').onclick = (e) => {
@@ -755,7 +855,8 @@ async function markCardRead(c, el) {
   if (c.read_at) return;
   c.read_at = Date.now();
   c.unread = 0;
-  c.display = displayScore(c);
+  // Ranking is deliberately NOT recomputed here: reading a card must not make it
+  // slide down the feed (or out of an unread-only view) while you are reading it.
   if (el) { el.classList.remove('is-unread'); el.classList.add('is-read'); }
   logEvent('read', { msgId: c.msg_id, threadId: c.thread_id, email: c.from_email });
   fdb('UPDATE cards SET read_at = ?, unread = 0 WHERE msg_id = ?', [c.read_at, c.msg_id]).catch(() => 0);
@@ -799,6 +900,9 @@ async function archiveCard(c, el) {
     await fdb('DELETE FROM cards WHERE msg_id = ?', [c.msg_id]).catch(() => 0);
     el.remove();
     F.cards = F.cards.filter((x) => x.msg_id !== c.msg_id);
+    F.expanded.delete(c.msg_id);
+    F.bodyScroll.delete(c.msg_id);
+    F.domIds.delete(c.msg_id);
     updateNav();
     renderFeed();
     showToast('Archived');
@@ -815,6 +919,9 @@ async function notInterested(c, el) {
     await fdb('UPDATE cards SET hidden = 1 WHERE msg_id = ?', [c.msg_id]);
   } catch (e) { /* hidden in this session only */ }
   F.cards = F.cards.filter((x) => x.msg_id !== c.msg_id);
+  F.expanded.delete(c.msg_id);
+  F.bodyScroll.delete(c.msg_id);
+  F.domIds.delete(c.msg_id);
   el.remove();
   updateNav();
   renderFeed();
@@ -855,6 +962,7 @@ async function sendCardReply(c, el, wrap, input) {
     fdb('UPDATE cards SET replied_at = ? WHERE msg_id = ?', [c.replied_at, c.msg_id]).catch(() => 0);
     wrap.hidden = true;
     input.value = '';
+    F.replies.delete(c.msg_id);
     const badge = document.createElement('span');
     badge.className = 'cm-card-badge';
     badge.textContent = 'Replied ✓';
@@ -884,7 +992,6 @@ function recordOpen(threadId, msgs) {
   if (card) {
     card.read_at = Date.now();
     card.unread = 0;               // main.js clears UNREAD in Gmail on open
-    card.display = displayScore(card);
     fdb('UPDATE cards SET read_at = ?, unread = 0 WHERE msg_id = ?', [card.read_at, card.msg_id]).catch(() => 0);
     updateNav();
     renderFeed();
@@ -935,6 +1042,51 @@ function navCount() { return F.navCount; }
 
 function updateNav() {
   if (typeof renderFolders === 'function') renderFolders();
+}
+
+/* ---------------- how the feed looks ---------------- */
+
+/* All / Unread — read mail belongs on this screen too; Unread is a lens on it. */
+function setFilter(mode) {
+  F.filter = FILTERS.indexOf(mode) === -1 ? 'all' : mode;
+  setPref('filter', F.filter);
+  applyChrome();
+  renderFeed(true);
+}
+
+/* Tiles that wrap · one mail per row · full-height columns you scroll across. */
+function setView(mode) {
+  F.view = VIEWS.indexOf(mode) === -1 ? 'grid' : mode;
+  setPref('view', F.view);
+  const scroller = $id('feed-scroll');
+  // A pane that scrolls sideways has no use for the other axis' old position.
+  if (scroller) {
+    if (F.view === 'columns') { scroller.scrollTop = 0; F.scroll.top = 0; }
+    else { scroller.scrollLeft = 0; F.scroll.left = 0; }
+  }
+  applyChrome();
+}
+
+function applyChrome() {
+  const scroller = $id('feed-scroll');
+  const grid = $id('feed-grid');
+  for (const el of [scroller, grid]) {
+    if (!el) continue;
+    el.classList.toggle('is-columns', F.view === 'columns');
+    el.classList.toggle('is-rows', F.view === 'rows');
+  }
+  // .is-active is the platform's own selected state for .seg-item, so the pill
+  // keeps its theme-correct colours rather than a hardcoded one.
+  document.querySelectorAll('#feed-viewmode [data-view]').forEach((b) => {
+    const on = b.dataset.view === F.view;
+    b.classList.toggle('is-active', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+  document.querySelectorAll('#feed-filter [data-filter]').forEach((b) => {
+    const on = b.dataset.filter === F.filter;
+    b.classList.toggle('is-active', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
 }
 
 /* ---------------- tuning ---------------- */
@@ -1069,7 +1221,32 @@ function wire() {
     $id('feed-onboard').hidden = true;
     refreshFeed();
   });
+
+  // All / Unread and the three layouts (one delegated listener each).
+  const seg = (id, attr, fn) => {
+    const el = $id(id);
+    if (el) el.addEventListener('click', (ev) => {
+      const b = ev.target.closest('[' + attr + ']');
+      if (b) fn(b.getAttribute(attr));
+    });
+  };
+  seg('feed-filter', 'data-filter', setFilter);
+  seg('feed-viewmode', 'data-view', setView);
+
+  // Column view scrolls sideways: let a plain wheel do it, like a rack of mail.
+  const scroller = $id('feed-scroll');
+  if (scroller) {
+    scroller.addEventListener('wheel', (e) => {
+      if (F.view !== 'columns') return;
+      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+      if (!scroller.scrollWidth || scroller.scrollWidth <= scroller.clientWidth) return;
+      scroller.scrollLeft += e.deltaY;
+      e.preventDefault();
+    }, { passive: false });
+  }
+  if (typeof paintIcons === 'function') paintIcons(document);
   probeFavicons();
+  applyChrome();
 }
 
 async function clearFeedData() {
@@ -1110,6 +1287,11 @@ async function start() {
     F.model = await getPref('model', '');
     F.seeded = (await getPref('seeded', '0')) === '1';
     F.lastRun = Number(await getPref('lastRun', 0)) || 0;
+    const view = await getPref('view', 'grid');
+    const filter = await getPref('filter', 'all');
+    F.view = VIEWS.indexOf(view) === -1 ? 'grid' : view;
+    F.filter = FILTERS.indexOf(filter) === -1 ? 'all' : filter;
+    applyChrome();
     await loadCards();
   }
   renderFeed();
@@ -1133,6 +1315,9 @@ window.CFeed = {
   onConnected,
   openTune,
   renderFeed,
+  setView,
+  setFilter,
+  applyChrome,
   reload: loadCards,
   _db: { exec: fdb, query: fq },
   _state: F,
