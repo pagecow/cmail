@@ -564,17 +564,129 @@ function fullDate(raw) {
 
 /* ---------------- quoting for replies ---------------- */
 
+/* Tags that end a line. textContent alone runs them ALL together — a normal mail
+   of three <p>s plus a quoted reply came out as one wall of text, because HTML
+   block boundaries are invisible to textContent and nothing re-added them. */
+const EOL_TAGS = new Set(['P', 'DIV', 'LI', 'TR', 'TD', 'TH', 'UL', 'OL', 'TABLE', 'SECTION',
+  'ARTICLE', 'ASIDE', 'HEADER', 'FOOTER', 'MAIN', 'NAV', 'FIGURE', 'FIGCAPTION', 'DL', 'DT',
+  'DD', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'BLOCKQUOTE', 'PRE', 'ADDRESS', 'FORM',
+  'FIELDSET', 'CENTER', 'HR']);
+
+/* The quoted tail of a mail: Gmail/Yahoo/Proton each wrap it in their own class. */
+function isQuoteEl(el) {
+  if (!el || el.nodeType !== 1) return false;
+  if (el.tagName === 'BLOCKQUOTE') return true;
+  const cls = String(el.className || '');
+  return /gmail_quote|yahoo_quoted|protonmail_quote|moz-cite-prefix/i.test(cls);
+}
+
+function walkText(node, buf) {
+  const kids = node.childNodes || [];
+  for (let i = 0; i < kids.length; i++) {
+    const n = kids[i];
+    if (n.nodeType === 3) { buf.push(n.nodeValue); continue; }
+    if (n.nodeType !== 1) continue;
+    const tag = n.tagName;
+    if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'HEAD' || tag === 'TITLE') continue;
+    if (tag === 'BR') { buf.push('\n'); continue; }
+    walkText(n, buf);
+    if (EOL_TAGS.has(tag)) buf.push('\n');
+  }
+  return buf;
+}
+
 function htmlToText(html) {
   try {
     const doc = new DOMParser().parseFromString(String(html || ''), 'text/html');
-    doc.querySelectorAll('script,style,head').forEach((n) => n.remove());
-    return (doc.body ? doc.body.textContent : '')
-      .replace(/[ \t]+\n/g, '\n')
+    const buf = walkText(doc.body || doc.documentElement, []);
+    return buf.join('')
+      .replace(/\u00a0/g, ' ')
+      .replace(/[ \t]+/g, ' ')
+      .replace(/ *\n */g, '\n')
       .replace(/\n{3,}/g, '\n\n')
       .trim();
   } catch (e) {
     return '';
   }
+}
+
+/* One mail as blocks a reader can style: paragraphs, bullet items, and the
+   quoted history flagged so it reads as a quote instead of as more of the mail.
+   Block = { kind: 'p' | 'li', quote: boolean, text }. */
+function htmlToBlocks(html) {
+  let doc;
+  try { doc = new DOMParser().parseFromString(String(html || ''), 'text/html'); }
+  catch (e) { return []; }
+  doc.querySelectorAll('script,style,head,title').forEach((n) => n.remove());
+
+  const out = [];
+  let buf = [];
+  const emit = (kind, quote) => {
+    const text = buf.join('')
+      .replace(/\u00a0/g, ' ')
+      .replace(/[ \t]+/g, ' ')
+      .replace(/ *\n */g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .replace(/^\n+|\n+$/g, '');
+    if (text) out.push({ kind, quote: !!quote, text });
+    buf = [];
+  };
+  const walk = (node, inQuote) => {
+    const kids = node.childNodes || [];
+    for (let i = 0; i < kids.length; i++) {
+      const n = kids[i];
+      if (n.nodeType === 3) { buf.push(n.nodeValue); continue; }
+      if (n.nodeType !== 1) continue;
+      const tag = n.tagName;
+      if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'HEAD' || tag === 'TITLE') continue;
+      if (tag === 'BR') { buf.push('\n'); continue; }
+      const q = inQuote || isQuoteEl(n);
+      if (tag === 'LI') {
+        emit('p', inQuote);
+        walk(n, q);
+        emit('li', q);
+        continue;
+      }
+      if (EOL_TAGS.has(tag)) {
+        emit('p', inQuote);
+        walk(n, q);
+        emit('p', q);
+        continue;
+      }
+      walk(n, q);            // inline element: keeps filling the current block
+    }
+  };
+  walk(doc.body || doc.documentElement, false);
+  emit('p', false);
+
+  // "On <date>, <sender> wrote:" is the quote's own header — dim it with the quote.
+  for (const b of out) {
+    if (!b.quote && /^(On|Am|Le)\b.{0,200}\bwrote:\s*$/i.test(b.text)) b.quote = true;
+  }
+  return out;
+}
+
+/* The same blocks, recovered from plain text (older cards, text/plain mail). */
+function textToBlocks(text) {
+  const out = [];
+  const paras = String(text || '').replace(/\r\n?/g, '\n').split(/\n{2,}/);
+  for (const para of paras) {
+    let cur = [];
+    let quote = false;
+    const flush = () => {
+      const t = cur.join('\n').replace(/\n+$/, '');
+      if (t.trim()) out.push({ kind: 'p', quote, text: t });
+      cur = [];
+    };
+    for (const line of para.split('\n')) {
+      const isQ = /^\s*>/.test(line) ||
+        /^(On|Am|Le)\b.{0,200}\bwrote:\s*$/i.test(line.trim());
+      if (isQ !== quote) { flush(); quote = isQ; }
+      cur.push(isQ ? line.replace(/^\s*>+\s?/, '') : line);
+    }
+    flush();
+  }
+  return out;
 }
 
 function quoteText(msg, from) {
@@ -1596,7 +1708,7 @@ const UPDATE_REPO = 'pagecow/cmail';
 const UPDATE_APP_JSON_URL = 'https://raw.githubusercontent.com/' + UPDATE_REPO + '/main/app.json';
 const UPDATE_RELEASE_API_URL = 'https://api.github.com/repos/' + UPDATE_REPO + '/releases/latest';
 const UPDATE_RELEASES_PAGE = 'https://github.com/' + UPDATE_REPO + '/releases';
-const APP_VERSION = '0.6.0';   // fallback only — the manifest is the source of truth
+const APP_VERSION = '0.6.1';   // fallback only — the manifest is the source of truth
 
 /* "1.2.3" / "v1.2.3" → [1, 2, 3]; null when there is no leading number. */
 function parseVersion(v) {

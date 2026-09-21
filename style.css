@@ -1594,6 +1594,64 @@
   max-height: none;
 }
 
+/* A mail you open reads as a mail: paragraphs with air between them, bullets for
+   lists, and the quoted history dimmed behind a bar — not one wall of text. */
+.cm-card-body .cm-line {
+  margin: 0 0 10px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.cm-card-body .cm-line:last-child {
+  margin-bottom: 0;
+}
+
+.cm-card-body .cm-line.is-li {
+  display: flex;
+  gap: 8px;
+}
+
+.cm-card-body .cm-bullet {
+  flex: none;
+  color: var(--faint);
+}
+
+.cm-card-body .cm-line-text {
+  min-width: 0;
+}
+
+.cm-quote {
+  margin: 2px 0 0;
+  padding-left: 12px;
+  border-left: 2px solid var(--border-strong);
+  color: var(--muted);
+}
+
+.cm-quote .cm-line {
+  margin-bottom: 8px;
+}
+
+.cm-quote-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  margin: 0 0 10px;
+  padding: 0 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-2);
+  font: inherit;
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.cm-quote-pill:hover {
+  background: var(--surface-3);
+  color: var(--text);
+}
+
 .cm-card-more {
   display: block;
   margin: 8px 14px 0;

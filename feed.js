@@ -65,6 +65,11 @@ const F = {
   expanded: new Set(),
   bodyScroll: new Map(),         // msg_id → how far into the text the reader was
   replies: new Map(),            // msg_id → a reply being written on that card
+  // msg_id → the real message as blocks (paragraphs/quotes). The stored body_text
+  // is a flattened copy, so this is fetched the first time a mail is opened.
+  blocks: new Map(),
+  blockTried: new Set(),         // don't re-fetch a mail we already tried this session
+  quotesOpen: new Set(),         // msg_id → quoted history revealed by the reader
   scroll: { top: 0, left: 0 },   // where the feed pane itself was scrolled
   renderSig: '',                 // what the grid currently paints (skip needless rebuilds)
   domIds: new Set(),
@@ -194,6 +199,8 @@ async function loadCards() {
     for (const id of Array.from(F.expanded)) if (!live.has(id)) F.expanded.delete(id);
     for (const id of Array.from(F.bodyScroll.keys())) if (!live.has(id)) F.bodyScroll.delete(id);
     for (const id of Array.from(F.replies.keys())) if (!live.has(id)) F.replies.delete(id);
+    for (const id of Array.from(F.blocks.keys())) if (!live.has(id)) F.blocks.delete(id);
+    for (const id of Array.from(F.quotesOpen)) if (!live.has(id)) F.quotesOpen.delete(id);
     F.navCount = F.cards.filter(isUnread).length;
   } catch (e) {
     F.cards = [];
@@ -598,7 +605,10 @@ function renderFeed(force) {
   const showOnboard = !F.seeded && !F.cards.length;
   if (onboard) onboard.hidden = !showOnboard;
   // All / Unread — read mail is part of the feed too; Unread is just a lens on it.
-  const shown = F.cards.filter((c) => F.filter === 'all' || isUnread(c));
+  // A mail you have OPEN stays put in either lens: reading it must never make it
+  // disappear out from under you mid-paragraph.
+  const shown = F.cards.filter((c) =>
+    F.filter === 'all' || isUnread(c) || F.expanded.has(c.msg_id));
   const ranked = shown.slice().sort((a, b) =>
     (b.display - a.display) || ((b.date_ms || 0) - (a.date_ms || 0)));
   setSub(ranked.length
@@ -663,6 +673,110 @@ function cardSignature(c) {
     isUnread(c) ? 1 : 0, c.subject || '', c.reason || '', c.topic || '', c.date_ms || 0,
     String(c.summary || ''), String(c.body_text || '').length,
   ].join('~');
+}
+
+/* ---------------- rendering a mail as a mail ---------------- */
+
+/* The stored body_text is a flattened copy of the message: textContent dropped
+   every block boundary, so a real mail arrived as one wall of text. Render the
+   blocks fetched from the actual message when we have them, and recover what
+   structure the text still carries when we don't. */
+function blocksFor(c) {
+  const cached = F.blocks.get(c.msg_id);
+  if (cached && cached.length) return cached;
+  return textToBlocks(c.body_text || c.snippet || '');
+}
+
+function buildBlockEl(b) {
+  const line = document.createElement('p');
+  line.className = 'cm-line' + (b.kind === 'li' ? ' is-li' : '');
+  if (b.kind === 'li') {
+    const dot = document.createElement('span');
+    dot.className = 'cm-bullet';
+    dot.textContent = '•';
+    dot.setAttribute('aria-hidden', 'true');
+    line.appendChild(dot);
+  }
+  const text = document.createElement('span');
+  text.className = 'cm-line-text';
+  text.textContent = b.text;    // text only: mail HTML never becomes live DOM here
+  line.appendChild(text);
+  return line;
+}
+
+/* Paragraphs, bullets, and the quoted history behind a bar. The quote is
+   collapsed behind a “…” pill the way Gmail does it — the mail you are reading
+   should never be buried under the mail you have already read. */
+function paintBlocks(bodyEl, blocks, msgId) {
+  const keepTop = bodyEl.scrollTop;
+  bodyEl.textContent = '';
+  const firstQuote = blocks.findIndex((b) => b.quote);
+  const collapse = firstQuote > 0;     // an all-quote mail has nothing to hide behind
+  const quote = collapse ? document.createElement('div') : null;
+  if (collapse) quote.className = 'cm-quote';
+  blocks.forEach((b, i) => {
+    const line = buildBlockEl(b);
+    if (collapse && i >= firstQuote) quote.appendChild(line);
+    else bodyEl.appendChild(line);
+  });
+  if (collapse) {
+    const shown = F.quotesOpen.has(msgId);
+    quote.hidden = !shown;
+    const pill = document.createElement('button');
+    pill.type = 'button';
+    pill.className = 'cm-quote-pill';
+    pill.textContent = shown ? 'Hide quoted text' : '…';
+    const label = shown ? 'Hide quoted text' : 'Show quoted text';
+    pill.title = label;
+    pill.setAttribute('aria-label', label);
+    pill.onclick = (e) => {
+      e.stopPropagation();
+      const nowOpen = quote.hidden;
+      quote.hidden = !nowOpen;
+      if (nowOpen) F.quotesOpen.add(msgId); else F.quotesOpen.delete(msgId);
+      pill.textContent = nowOpen ? 'Hide quoted text' : '…';
+      pill.title = nowOpen ? 'Hide quoted text' : 'Show quoted text';
+      pill.setAttribute('aria-label', pill.title);
+    };
+    bodyEl.appendChild(pill);
+    bodyEl.appendChild(quote);
+  }
+  bodyEl.scrollTop = keepTop;
+}
+
+/* Fetch a mail's real body the first time it is opened, so the card shows the
+   message itself rather than the flattened copy kept for ranking. One try per
+   mail per session; offline, the stored text keeps the card readable. */
+async function ensureBlocks(c) {
+  if (F.blocks.has(c.msg_id) || F.blockTried.has(c.msg_id)) return;
+  F.blockTried.add(c.msg_id);
+  let blocks = [];
+  try {
+    const full = await gmailRequest('messages/' + enc(c.msg_id) + '?format=full');
+    const body = getMessageBody(full);
+    blocks = body.kind === 'html' ? htmlToBlocks(body.content) : textToBlocks(body.content);
+  } catch (e) {
+    return;                    // offline or gone: the stored text is still there
+  }
+  if (!blocks.length) return;
+  F.blocks.set(c.msg_id, blocks);
+
+  // Repair the stored row too, so the structured version is what survives a
+  // restart (and what a later read gets offline).
+  const flat = blocks.map((b) => (b.quote ? b.text.replace(/^/gm, '> ') : b.text)).join('\n\n');
+  if (flat && flat !== c.body_text) {
+    c.body_text = flat.slice(0, TEXT_CAP);
+    fdb('UPDATE cards SET body_text = ? WHERE msg_id = ?', [c.body_text, c.msg_id]).catch(() => 0);
+  }
+
+  // The grid may have been rebuilt while the fetch was in flight: repaint
+  // whichever copy of this card is on screen now.
+  if (!F.expanded.has(c.msg_id)) return;
+  const gridEl = $id('feed-grid');
+  if (!gridEl) return;
+  gridEl.querySelectorAll('.cm-card').forEach((el) => {
+    if (el.dataset.id === c.msg_id && el.cmRepaint) el.cmRepaint();
+  });
 }
 
 function buildCard(c) {
@@ -748,12 +862,25 @@ function buildCard(c) {
   foot.parentNode.insertBefore(moreHint, foot);
 
   const paintBody = () => {
-    const text = summaryMode ? (c.summary || c.snippet || '') : (c.body_text || c.snippet || '');
-    bodyEl.textContent = text || '(This message has no text.)';
-    bodyEl.classList.toggle('is-text', !summaryMode);
-    el.classList.toggle('is-expanded', !summaryMode);
+    // Keep the reader's place in the text across a repaint (blocks arriving, a
+    // quote toggled, the grid rebuilding under an open card…).
+    const keepTop = bodyEl.scrollTop;
+    const open = !summaryMode;
+    bodyEl.textContent = '';
+    el.classList.toggle('is-expanded', open);
+    bodyEl.classList.toggle('is-text', open);
+    if (open) {
+      const blocks = blocksFor(c);
+      if (blocks.length) paintBlocks(bodyEl, blocks, c.msg_id);
+      else bodyEl.textContent = '(This message has no text.)';
+    } else {
+      bodyEl.textContent = c.summary || c.snippet || '(This message has no text.)';
+    }
+    if (keepTop) bodyEl.scrollTop = keepTop;
+    // The stored text is cut at TEXT_CAP — but only while that cut text is what
+    // the card is showing: once the whole message has been fetched, none is.
     const cut = String(c.body_text || '').length >= TEXT_CAP - 1;
-    moreHint.hidden = !(cut && !summaryMode);
+    moreHint.hidden = !(open && cut && !F.blocks.has(c.msg_id));
   };
   paintBody();
 
@@ -774,10 +901,15 @@ function buildCard(c) {
       else F.expanded.add(c.msg_id);
       paintSee();
       paintBody();
-      if (!summaryMode) markCardRead(c, el);
+      if (!summaryMode) {
+        markCardRead(c, el);
+        ensureBlocks(c);       // the real message, fetched and styled on first open
+      }
     };
     paintSee();     // a card rebuilt while open keeps its “Show summary” label
   }
+  // ensureBlocks() repaints through this when the fetched blocks land.
+  el.cmRepaint = () => { paintSee(); paintBody(); };
 
   // Clicking the mail itself opens the conversation — but selecting text is not
   // a click, and a card you are READING in full must not navigate away on a
